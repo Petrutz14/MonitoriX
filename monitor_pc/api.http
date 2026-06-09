@@ -23,7 +23,7 @@ PATCH http://localhost:8080/api/machines/CRISTINA-PC
 Content-Type: application/json
 
 {
-"displayName": "Love Of My Life<3"
+"displayName": "Lalala123123"
 }
 
 ### Machine metrics history in 30 default minutes
