@@ -1,0 +1,143 @@
+<!-- ── Toast stack (fixed top-right) ── -->
+<div class="toast-stack">
+  @for (toast of toasts; track toast.id) {
+    <div class="toast" [class]="getSeverityClass(toast.alert.alertSeverity)">
+      <div class="toast-top">
+        <span class="toast-sev-dot"></span>
+        <span class="toast-machine">{{ toast.alert.displayName || toast.alert.machineId }}</span>
+        <span class="toast-sev-label">{{ toast.alert.alertSeverity }}</span>
+        <button class="toast-close" (click)="dismissToast(toast.id)">✕</button>
+      </div>
+      <div class="toast-body">
+        {{ formatMetricType(toast.alert.metricType) }} {{ formatOperator(toast.alert.alertOperator) }} {{ toast.alert.threshold }}%
+        — now <strong>{{ toast.alert.triggeredValue | number:'1.1-1' }}%</strong>
+      </div>
+    </div>
+  }
+</div>
+
+<!-- ── Active Alerts section ── -->
+@if (allActiveAlerts.length > 0) {
+  <div class="alerts-section">
+    <div class="alerts-section-header">
+      <span class="alerts-section-icon">⚑</span>
+      <span class="alerts-section-title">Active Alerts</span>
+      <span class="alerts-section-count">{{ allActiveAlerts.length }}</span>
+    </div>
+    <div class="alerts-list">
+      @for (alert of allActiveAlerts; track alert.id) {
+        <a class="alert-row" [class]="'alert-row--' + getSeverityClass(alert.alertSeverity)" [routerLink]="['/machine', alert.machineId]">
+          <span class="alert-row-sev" [class]="getSeverityClass(alert.alertSeverity)">{{ alert.alertSeverity }}</span>
+          <span class="alert-row-machine">{{ alert.displayName || alert.machineId }}</span>
+          <span class="alert-row-desc">
+            {{ formatMetricType(alert.metricType) }} {{ formatOperator(alert.alertOperator) }} {{ alert.threshold }}%
+          </span>
+          <span class="alert-row-value">{{ alert.triggeredValue | number:'1.1-1' }}%</span>
+          <span class="alert-row-time">{{ formatTimeAgo(alert.triggeredAt) }}</span>
+        </a>
+      }
+    </div>
+  </div>
+}
+
+@if (loading) {
+  <div class="loading-state">
+    <span class="loading-spinner"></span>
+    <span class="loading-text">Fetching machines…</span>
+  </div>
+} @else if (machines.length === 0) {
+  <div class="empty-state">No machines registered.</div>
+} @else {
+  <div class="machines-grid">
+    @for (machine of machines; track machine.machineId) {
+      @let m = getMetric(machine.machineId);
+      @let alertCount = getAlertCount(machine.machineId);
+      <a class="machine-card"
+         [class.card--stale]="isStale(machine.machineStatus)"
+         [class.card--alert]="alertCount > 0"
+         [routerLink]="['/machine', machine.machineId]">
+
+        <!-- Card header -->
+        <div class="card-header">
+          <div class="card-header-left">
+            <span class="card-name">{{ machine.displayName || machine.machineId }}</span>
+            <span class="card-id">{{ machine.machineId }}</span>
+          </div>
+          <div class="card-header-right">
+            @if (alertCount > 0) {
+              <div class="alert-badge">⚑ {{ alertCount }}</div>
+            }
+            <div class="status-chip" [class]="'status-chip--' + machine.machineStatus.toLowerCase()">
+              <span class="status-dot"></span>{{ machine.machineStatus }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Stale banner -->
+        @if (isStale(machine.machineStatus)) {
+          <div class="stale-banner">
+            <span class="stale-icon">⏱</span>
+            Last online {{ formatTimeAgo(machine.lastSeen) }}
+          </div>
+        }
+
+        <!-- Gauges -->
+        @if (m) {
+          <div class="card-gauges" [class.gauges--stale]="isStale(machine.machineStatus)">
+
+            <div class="gauge">
+              <div class="gauge-top">
+                <span class="gauge-label">CPU</span>
+                <span class="gauge-pct" [class]="'color-' + getAlertClass(m.cpuPercent)">{{ m.cpuPercent }}%</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" [class]="'fill-' + getAlertClass(m.cpuPercent)" [style.width.%]="m.cpuPercent"></div>
+              </div>
+            </div>
+
+            <div class="gauge">
+              <div class="gauge-top">
+                <span class="gauge-label">RAM</span>
+                <span class="gauge-pct" [class]="'color-' + getAlertClass(m.ramPercent)">{{ m.ramPercent }}%</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" [class]="'fill-' + getAlertClass(m.ramPercent)" [style.width.%]="m.ramPercent"></div>
+              </div>
+              <div class="gauge-sub">{{ m.ramUsedGb | number:'1.1-1' }} / {{ m.totalRamGb | number:'1.1-1' }} GB</div>
+            </div>
+
+            <div class="gauge">
+              <div class="gauge-top">
+                <span class="gauge-label">Disk</span>
+                <span class="gauge-pct" [class]="'color-' + getAlertClass(m.diskPercent)">{{ m.diskPercent }}%</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" [class]="'fill-' + getAlertClass(m.diskPercent)" [style.width.%]="m.diskPercent"></div>
+              </div>
+              <div class="gauge-sub">{{ m.diskFreeGb | number:'1.1-1' }} GB free</div>
+            </div>
+
+          </div>
+
+          <!-- Card footer -->
+          <div class="card-footer">
+            <span class="footer-item">{{ m.osName }}</span>
+            <span class="footer-sep">·</span>
+            <span class="footer-item">{{ m.ipAddress }}</span>
+            <span class="footer-sep">·</span>
+            @if (isStale(machine.machineStatus)) {
+              <span class="footer-item footer-stale">recorded {{ formatTimeAgo(m.recordedAt) }}</span>
+            } @else {
+              <span class="footer-item">up {{ formatUptime(m.uptimeSeconds) }}</span>
+            }
+            <span class="footer-time">{{ m.recordedAt | date:'HH:mm:ss' }}</span>
+          </div>
+
+        } @else {
+          <div class="card-no-data">No metrics yet</div>
+        }
+
+      </a>
+    }
+  </div>
+}

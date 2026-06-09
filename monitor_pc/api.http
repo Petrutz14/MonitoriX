@@ -1,0 +1,33 @@
+### Create metric for specififc machine or create the mchine and metric
+POST localhost:8080/api/metrics
+Content-Type: application/json
+
+{
+    "machineId": "CRISTINA-PC",
+    "cpuPercent": 25.2,
+    "ramPercent": 11.1,
+    "diskPercent": 98.0
+}
+
+### Get metric latest for specific machine
+GET localhost:8080/api/metrics/Petrutz
+
+### Get all machines
+GET http://localhost:8080/api/machines
+
+### Get specific machine
+GET  http://localhost:8080/api/machines/Petrutz
+
+### Update display name
+PATCH http://localhost:8080/api/machines/CRISTINA-PC
+Content-Type: application/json
+
+{
+"displayName": "Love Of My Life<3"
+}
+
+### Machine metrics history in 30 default minutes
+GET http://localhost:8080/api/metrics/DESKTOP-TEST2/history
+
+### Machine metrics history in 1 minute
+GET http://localhost:8080/api/metrics/CRISTINA-PC/history?minutes=5

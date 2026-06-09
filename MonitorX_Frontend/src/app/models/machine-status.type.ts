@@ -1,0 +1,1 @@
+export type MachineStatus = 'ONLINE' | 'IDLE' | 'OFFLINE' | 'UNKNOWN';

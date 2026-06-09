@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: pc-monitor-db
+    environment:
+      POSTGRES_DB: pc_monitor
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    ports:
+      - "5432:5432"
+    volumes:
+      - pc_monitor_data:/var/lib/postgresql/data
+volumes:
+  pc_monitor_data:

@@ -1,0 +1,337 @@
+<div class="detail">
+
+  <!-- ── Breadcrumb / back ── -->
+  <div class="breadcrumb">
+    <a routerLink="/dashboard" class="back-link">← All Machines</a>
+    <span class="bc-sep">/</span>
+    <span class="bc-current">{{ machine?.displayName || machineId }}</span>
+  </div>
+
+  @if (machine) {
+
+    <!-- ── Identity ── -->
+    <div class="identity-bar">
+      <div class="identity-left">
+        @if (!editing) {
+          <span class="machine-name">{{ machine.displayName || machine.machineId }}</span>
+          <button class="edit-btn" (click)="startEdit()" title="Rename machine">✎</button>
+        } @else {
+          <div class="edit-form">
+            <input
+              class="edit-input"
+              [(ngModel)]="editName"
+              (keydown.enter)="saveEdit()"
+              (keydown.escape)="cancelEdit()"
+              autofocus
+              placeholder="Display name"
+            />
+            <button class="btn-save" (click)="saveEdit()" [disabled]="saving">
+              {{ saving ? '…' : 'Save' }}
+            </button>
+            <button class="btn-cancel" (click)="cancelEdit()">Cancel</button>
+          </div>
+          @if (saveError) {
+            <span class="save-error">{{ saveError }}</span>
+          }
+        }
+        <span class="machine-id">{{ machine.machineId }}</span>
+      </div>
+      <div class="identity-right">
+        <div class="status-chip" [class]="'status-chip--' + machine.machineStatus.toLowerCase()">
+          <span class="status-dot"></span>{{ machine.machineStatus }}
+        </div>
+        @if (metric) {
+          <div class="live-badge"><span class="live-dot"></span>LIVE</div>
+        }
+      </div>
+    </div>
+
+    <!-- ── Stale notice ── -->
+    @if (isStale(machine.machineStatus)) {
+      <div class="stale-notice">
+        <span class="stale-notice-icon">⏱</span>
+        <span>
+          Machine is <strong>{{ machine.machineStatus }}</strong> —
+          showing last recorded data.
+          Last online <strong>{{ formatTimeAgo(machine.lastSeen) }}</strong>
+          ({{ machine.lastSeen | date:'yyyy-MM-dd HH:mm:ss' }}).
+        </span>
+      </div>
+    }
+
+    <!-- ── Active alerts banner ── -->
+    @if (activeAlerts.length > 0) {
+      <div class="active-alerts-banner">
+        <div class="active-alerts-header">
+          <span class="active-alerts-icon">⚑</span>
+          <span class="active-alerts-title">{{ activeAlerts.length }} active alert{{ activeAlerts.length > 1 ? 's' : '' }}</span>
+        </div>
+        <div class="active-alerts-list">
+          @for (alert of activeAlerts; track alert.id) {
+            <div class="active-alert-row">
+              <span class="alert-sev-badge" [class]="getSeverityClass(alert.alertSeverity)">{{ alert.alertSeverity }}</span>
+              <span class="active-alert-desc">
+                {{ formatMetricType(alert.metricType) }} {{ formatOperator(alert.alertOperator) }} {{ alert.threshold }}%
+                — currently <strong>{{ alert.triggeredValue | number:'1.1-1' }}%</strong>
+              </span>
+              <span class="active-alert-time">{{ formatTimeAgo(alert.triggeredAt) }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    @if (metric) {
+
+      <!-- ── Gauges ── -->
+      <div class="gauge-row">
+
+        <div class="gauge-card">
+          <div class="gauge-label">CPU</div>
+          <div class="gauge-value" [class]="'color-' + getAlertClass(metric.cpuPercent)">
+            {{ metric.cpuPercent }}<span class="gauge-unit">%</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" [class]="'fill-' + getAlertClass(metric.cpuPercent)" [style.width.%]="metric.cpuPercent"></div>
+          </div>
+        </div>
+
+        <div class="gauge-card">
+          <div class="gauge-label">RAM</div>
+          <div class="gauge-value" [class]="'color-' + getAlertClass(metric.ramPercent)">
+            {{ metric.ramPercent }}<span class="gauge-unit">%</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" [class]="'fill-' + getAlertClass(metric.ramPercent)" [style.width.%]="metric.ramPercent"></div>
+          </div>
+          <div class="gauge-sub">{{ metric.ramUsedGb | number:'1.1-1' }} / {{ metric.totalRamGb | number:'1.1-1' }} GB</div>
+        </div>
+
+        <div class="gauge-card">
+          <div class="gauge-label">Disk</div>
+          <div class="gauge-value" [class]="'color-' + getAlertClass(metric.diskPercent)">
+            {{ metric.diskPercent }}<span class="gauge-unit">%</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" [class]="'fill-' + getAlertClass(metric.diskPercent)" [style.width.%]="metric.diskPercent"></div>
+          </div>
+          <div class="gauge-sub">{{ metric.diskFreeGb | number:'1.1-1' }} GB free</div>
+        </div>
+
+      </div>
+
+      <!-- ── Info strip ── -->
+      <div class="info-strip">
+        <div class="info-item">
+          <span class="info-label">OS</span>
+          <span class="info-val">{{ metric.osName }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">IP Address</span>
+          <span class="info-val">{{ metric.ipAddress }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Total RAM</span>
+          <span class="info-val">{{ metric.totalRamGb | number:'1.1-1' }} GB</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Uptime</span>
+          <span class="info-val">{{ formatUptime(metric.uptimeSeconds) }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">{{ isStale(machine.machineStatus) ? 'Recorded At' : 'Last Update' }}</span>
+          <span class="info-val">{{ metric.recordedAt | date:'HH:mm:ss' }}</span>
+        </div>
+        @if (isStale(machine.machineStatus)) {
+          <div class="info-item">
+            <span class="info-label">Last Online</span>
+            <span class="info-val info-val--stale">{{ formatTimeAgo(machine.lastSeen) }}</span>
+          </div>
+        }
+      </div>
+
+      <!-- ── Panels ── -->
+      <div class="panels-row">
+
+        <div class="panel">
+          <div class="panel-title">Top Processes</div>
+          <table class="data-table">
+            <thead>
+              <tr><th>PID</th><th>Name</th><th>CPU%</th><th>RAM%</th><th>RAM MB</th></tr>
+            </thead>
+            <tbody>
+              @for (proc of metric.topProcesses; track proc.pid) {
+                <tr>
+                  <td class="muted">{{ proc.pid }}</td>
+                  <td class="highlight">{{ proc.name }}</td>
+                  <td [class]="'color-' + getAlertClass(proc.cpuPercent)">{{ proc.cpuPercent | number:'1.1-1' }}%</td>
+                  <td [class]="'color-' + getAlertClass(proc.ramPercent)">{{ proc.ramPercent | number:'1.1-1' }}%</td>
+                  <td class="muted">{{ proc.ramUsedMb | number:'1.0-0' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">Disk Partitions</div>
+          <table class="data-table">
+            <thead>
+              <tr><th>Device</th><th>Mount</th><th>FS</th><th>Used</th><th>Total</th></tr>
+            </thead>
+            <tbody>
+              @for (part of metric.diskPartitions; track part.device) {
+                <tr>
+                  <td class="highlight">{{ part.device }}</td>
+                  <td class="muted">{{ part.mountPoint }}</td>
+                  <td class="muted">{{ part.fileSystem }}</td>
+                  <td [class]="'color-' + getAlertClass(part.percent)">{{ part.usedGb | number:'1.1-1' }} GB</td>
+                  <td class="muted">{{ part.totalGb | number:'1.1-1' }} GB</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+    } @else {
+      <div class="no-metric">No metrics available for this machine yet.</div>
+    }
+
+    <!-- ── Alert Rules ── -->
+    <div class="section-block">
+      <div class="section-header">
+        <span class="section-title">Alert Rules</span>
+        <button class="btn-add-rule" (click)="toggleRuleForm()">
+          {{ showRuleForm ? '✕ Cancel' : '+ Add Rule' }}
+        </button>
+      </div>
+
+      @if (showRuleForm) {
+        <div class="rule-form">
+          <div class="rule-form-row">
+            <div class="rule-form-field">
+              <label class="rule-form-label">Metric</label>
+              <select class="rule-select" [(ngModel)]="newRule.metricType">
+                <option value="CPU_PERCENT">CPU</option>
+                <option value="RAM_PERCENT">RAM</option>
+                <option value="DISK_PERCENT">Disk</option>
+              </select>
+            </div>
+            <div class="rule-form-field">
+              <label class="rule-form-label">Operator</label>
+              <select class="rule-select" [(ngModel)]="newRule.alertOperator">
+                <option value="HIGHER">&gt;</option>
+                <option value="HIGHER_OR_EQUAL">≥</option>
+                <option value="LOWER">&lt;</option>
+                <option value="LOWER_OR_EQUAL">≤</option>
+                <option value="EQUAL">=</option>
+              </select>
+            </div>
+            <div class="rule-form-field">
+              <label class="rule-form-label">Threshold (%)</label>
+              <input class="rule-input" type="number" min="0" max="100" [(ngModel)]="newRule.threshold" />
+            </div>
+            <div class="rule-form-field">
+              <label class="rule-form-label">Severity</label>
+              <select class="rule-select" [(ngModel)]="newRule.alertSeverity">
+                <option value="LOW">LOW</option>
+                <option value="MEDIUM">MEDIUM</option>
+                <option value="HIGH">HIGH</option>
+                <option value="CRITICAL">CRITICAL</option>
+              </select>
+            </div>
+            <div class="rule-form-field rule-form-field--check">
+              <label class="rule-form-label">Scope</label>
+              <label class="rule-check-label">
+                <input type="checkbox" [(ngModel)]="isGlobalRule" />
+                Apply to all machines
+              </label>
+            </div>
+          </div>
+          @if (ruleFormError) {
+            <span class="rule-form-error">{{ ruleFormError }}</span>
+          }
+          <div class="rule-form-actions">
+            <button class="btn-save" (click)="submitRule()" [disabled]="ruleFormSaving">
+              {{ ruleFormSaving ? '…' : 'Create Rule' }}
+            </button>
+            <button class="btn-cancel" (click)="cancelRuleForm()">Cancel</button>
+          </div>
+        </div>
+      }
+
+      @if (alertRules.length === 0 && !showRuleForm) {
+        <div class="section-empty">No alert rules configured.</div>
+      } @else {
+        <div class="rules-list">
+          @for (rule of alertRules; track rule.id) {
+            <div class="rule-row" [class.rule-row--disabled]="!rule.enabled">
+              <span class="alert-sev-badge" [class]="getSeverityClass(rule.alertSeverity)">{{ rule.alertSeverity }}</span>
+              <span class="rule-desc">
+                {{ formatMetricType(rule.metricType) }} {{ formatOperator(rule.alertOperator) }} {{ rule.threshold }}%
+              </span>
+              @if (rule.machineId === null) {
+                <span class="rule-scope-badge">GLOBAL</span>
+              }
+              <div class="rule-actions">
+                <button
+                  class="rule-toggle"
+                  [class.rule-toggle--on]="rule.enabled"
+                  (click)="toggleRule(rule)"
+                  [title]="rule.enabled ? 'Disable rule' : 'Enable rule'"
+                >{{ rule.enabled ? 'ON' : 'OFF' }}</button>
+                <button class="rule-delete" (click)="deleteRule(rule)" title="Delete rule">✕</button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- ── Recent Alerts ── -->
+    @if (recentAlerts.length > 0) {
+      <div class="section-block">
+        <div class="section-header">
+          <span class="section-title">Recent Alerts</span>
+        </div>
+        <div class="alerts-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Severity</th>
+                <th>Metric</th>
+                <th>Condition</th>
+                <th>Value</th>
+                <th>Status</th>
+                <th>Triggered</th>
+                <th>Resolved</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (alert of recentAlerts; track alert.id) {
+                <tr>
+                  <td><span class="alert-sev-badge" [class]="getSeverityClass(alert.alertSeverity)">{{ alert.alertSeverity }}</span></td>
+                  <td class="highlight">{{ formatMetricType(alert.metricType) }}</td>
+                  <td class="muted">{{ formatOperator(alert.alertOperator) }} {{ alert.threshold }}%</td>
+                  <td [class]="'color-' + getAlertClass(alert.triggeredValue)">{{ alert.triggeredValue | number:'1.1-1' }}%</td>
+                  <td><span class="alert-status-badge" [class]="'alert-status--' + alert.status.toLowerCase()">{{ alert.status }}</span></td>
+                  <td class="muted">{{ formatTimeAgo(alert.triggeredAt) }}</td>
+                  <td class="muted">{{ alert.resolvedAt ? formatTimeAgo(alert.resolvedAt) : '—' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+
+  } @else {
+    <div class="loading-state">
+      <span class="loading-spinner"></span>
+      <span>Loading machine…</span>
+    </div>
+  }
+
+</div>
