@@ -12,3 +12,9 @@ Thumbs.db
 
 # Claude Code session data
 .claude/
+
+# Project docs
+OVERVIEW.md
+
+# Serena MCP
+.serena/
