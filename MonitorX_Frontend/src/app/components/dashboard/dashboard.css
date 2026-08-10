@@ -1,3 +1,36 @@
+/* ── Topbar ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  background: var(--card-bg, #1e1e2e);
+  border-bottom: 1px solid var(--border, #333);
+  margin-bottom: 1.5rem;
+}
+
+.topbar-brand {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent, #7c6af7);
+}
+
+.logout-btn {
+  background: none;
+  border: 1px solid var(--border, #333);
+  color: var(--text-muted, #888);
+  padding: 0.35rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.logout-btn:hover {
+  color: var(--text, #eee);
+  border-color: var(--text-muted, #888);
+}
+
 /* ── Toast stack (fixed top-right) ── */
 .toast-stack {
   position: fixed;

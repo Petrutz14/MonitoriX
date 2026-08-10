@@ -59,14 +59,16 @@ Full detail lives in Serena memories. Quick reference:
 - Key flow: agent `POST /api/metrics` → `MetricIngestionService.ingest()` → save rows → evaluate alerts → broadcast to `/topic/metrics` and `/topic/alerts`.
 - `machineId` = hostname string. Never use DB numeric PK as domain identifier.
 - Never expose JPA entities directly — always map via MapStruct.
+- Auth: `config/SecurityConfig` — RSA JWT, stateless. `AuthService` handles register/login/registerAgent. `ROLE_AGENT` required for metrics ingest.
 
 **Frontend** (`MonitorX_Frontend/` — Angular 21 / TypeScript 5.9)
 - Standalone components only; no NgModules.
 - `WebSocketService` singleton — STOMP over `ws://localhost:8080/ws`; exposes `metric$` and `alert$` Observables.
 - Always call `cdr.detectChanges()` after async updates.
 - Severity order: CRITICAL > HIGH > MEDIUM > LOW.
+- Auth: basic sign-up/login UI in progress (WIP as of 2026-08-10).
 
-**Agent** (`MonitorX_Metrics.py`) — plain Python script, POSTs every 15 s.
+**Agent** (`MonitorX_Metrics.py`) — self-registers via `POST /api/auth/register-agent`, logs in to get JWT, then POSTs metrics every 15 s with `Authorization: Bearer <token>`.
 
 ---
 
@@ -84,16 +86,23 @@ Container: `pc-monitor-db`, DB: `pc_monitor`, port `5432`. Credentials in `appli
 
 ## REST API Surface
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/machines` | List all machines |
-| PATCH | `/api/machines/{id}` | Update display name |
-| POST | `/api/metrics` | Ingest agent payload |
-| GET | `/api/metrics/{id}` | Latest metric for a machine |
-| GET | `/api/metrics/{id}/history` | Historical metrics |
-| GET/POST/DELETE | `/api/alert-rules` | Manage alert rules |
-| PATCH | `/api/alert-rules/{id}/toggle` | Enable / disable rule |
-| GET | `/api/alerts/{id}/active` | Active alerts for a machine |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/auth/register` | No | Register human user |
+| POST | `/api/auth/login` | No | Login → JWT |
+| POST | `/api/auth/register-agent` | `X-Agent-Secret` header | Agent self-registration |
+| GET | `/api/machines` | JWT | List all machines |
+| PATCH | `/api/machines/{id}` | JWT | Update display name |
+| POST | `/api/metrics` | JWT (`ROLE_AGENT`) | Ingest agent payload |
+| GET | `/api/metrics/{id}` | JWT | Latest metric for a machine |
+| GET | `/api/metrics/{id}/history` | JWT | Historical metrics |
+| GET/POST/DELETE | `/api/alert-rules` | JWT | Manage alert rules |
+| PATCH | `/api/alert-rules/{id}/toggle` | JWT | Enable / disable rule |
+| GET | `/api/alerts/{id}/active` | JWT | Active alerts for a machine |
+
+**Public:** `/api/auth/**`, `/ws/**`, `OPTIONS /**`. Everything else requires a valid Bearer JWT.
+
+**Agent self-registration secret:** `X-Agent-Secret` header value must match `agent.registration-secret` in `application.properties`. Dev value: `demo_secret`. Keep `AGENT_REGISTRATION_SECRET` in `MonitorX_Metrics.py` in sync.
 
 ---
 

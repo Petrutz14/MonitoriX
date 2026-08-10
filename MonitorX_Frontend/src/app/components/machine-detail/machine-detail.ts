@@ -22,13 +22,11 @@ export class MachineDetail implements OnInit, OnDestroy {
   machine: MachineResponse | null = null;
   metric: MetricResponse | null = null;
 
-  // display name editing
   editing = false;
   editName = '';
   saving = false;
   saveError = '';
 
-  // alerts
   alertRules: AlertRuleResponse[] = [];
   activeAlerts: AlertResponse[] = [];
   recentAlerts: AlertResponse[] = [];
@@ -37,6 +35,11 @@ export class MachineDetail implements OnInit, OnDestroy {
   newRule: AlertRuleRequest = this.emptyRule();
   ruleFormError = '';
   ruleFormSaving = false;
+
+  historyData: MetricResponse[] = [];
+  historyMinutes = 30;
+  historyLoading = false;
+  historyError = false;
 
   private wsSub?: Subscription;
   private alertSub?: Subscription;
@@ -64,6 +67,7 @@ export class MachineDetail implements OnInit, OnDestroy {
     });
 
     this.loadAlertData();
+    this.loadHistory();
 
     this.webSocketService.connect();
 
@@ -71,6 +75,7 @@ export class MachineDetail implements OnInit, OnDestroy {
       if (data.machineId === this.machineId) {
         this.metric = data;
         if (this.machine) this.machine.machineStatus = data.machineStatus;
+        this.historyData = [...this.historyData, data].slice(-480);
         this.cdr.detectChanges();
       }
     });
@@ -95,6 +100,43 @@ export class MachineDetail implements OnInit, OnDestroy {
       this.cdr.detectChanges();
     });
   }
+
+  loadHistory(): void {
+    this.historyLoading = true;
+    this.historyError = false;
+    this.metricService.getMetricHistory(this.machineId, this.historyMinutes).subscribe({
+      next: data => {
+        this.historyData = data.slice().reverse();
+        this.historyLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.historyError = true;
+        this.historyLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  setHistoryWindow(minutes: number): void {
+    this.historyMinutes = minutes;
+    this.loadHistory();
+  }
+
+  getChartPoints(values: number[]): string {
+    if (values.length < 2) return '';
+    const xStart = 20, xEnd = 580, yBottom = 90, yTop = 10;
+    const w = xEnd - xStart, h = yBottom - yTop;
+    return values.map((v, i) => {
+      const x = xStart + (i / (values.length - 1)) * w;
+      const y = yBottom - (v / 100) * h;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+  }
+
+  get cpuPoints(): string { return this.getChartPoints(this.historyData.map(d => d.cpuPercent)); }
+  get ramPoints(): string { return this.getChartPoints(this.historyData.map(d => d.ramPercent)); }
+  get diskPoints(): string { return this.getChartPoints(this.historyData.map(d => d.diskPercent)); }
 
   private loadAlertData(): void {
     forkJoin({
@@ -169,7 +211,6 @@ export class MachineDetail implements OnInit, OnDestroy {
     });
   }
 
-  // display name editing
   startEdit(): void {
     this.editName = this.machine?.displayName ?? '';
     this.saveError = '';

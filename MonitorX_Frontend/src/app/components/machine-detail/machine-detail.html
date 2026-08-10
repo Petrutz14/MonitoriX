@@ -199,6 +199,40 @@
       <div class="no-metric">No metrics available for this machine yet.</div>
     }
 
+    <!-- ── Metric History ── -->
+    <div class="section-block">
+      <div class="section-header">
+        <span class="section-title">METRIC HISTORY</span>
+        <div class="history-tabs">
+          <button class="history-tab" [class.history-tab--active]="historyMinutes === 30"  (click)="setHistoryWindow(30)">30m</button>
+          <button class="history-tab" [class.history-tab--active]="historyMinutes === 60"  (click)="setHistoryWindow(60)">1h</button>
+          <button class="history-tab" [class.history-tab--active]="historyMinutes === 120" (click)="setHistoryWindow(120)">2h</button>
+        </div>
+      </div>
+      @if (historyLoading) {
+        <div class="chart-loading"><span class="loading-spinner"></span></div>
+      } @else if (historyError) {
+        <div class="section-empty">Failed to load history. Check backend connection.</div>
+      } @else if (historyData.length < 2) {
+        <div class="section-empty">Not enough history yet — metrics accumulate every 15 s.</div>
+      } @else {
+        <div class="chart-wrap">
+          <svg class="history-chart" viewBox="0 0 600 100" preserveAspectRatio="none" aria-hidden="true">
+            <line x1="20" y1="22" x2="580" y2="22" class="chart-threshold chart-threshold--danger" vector-effect="non-scaling-stroke" />
+            <line x1="20" y1="42" x2="580" y2="42" class="chart-threshold chart-threshold--warn"   vector-effect="non-scaling-stroke" />
+            <polyline class="chart-line chart-line--disk"  [attr.points]="diskPoints" vector-effect="non-scaling-stroke" />
+            <polyline class="chart-line chart-line--ram"   [attr.points]="ramPoints"  vector-effect="non-scaling-stroke" />
+            <polyline class="chart-line chart-line--cpu"   [attr.points]="cpuPoints"  vector-effect="non-scaling-stroke" />
+          </svg>
+          <div class="chart-legend">
+            <span class="chart-legend-item chart-legend-item--cpu">CPU</span>
+            <span class="chart-legend-item chart-legend-item--ram">RAM</span>
+            <span class="chart-legend-item chart-legend-item--disk">Disk</span>
+          </div>
+        </div>
+      }
+    </div>
+
     <!-- ── Alert Rules ── -->
     <div class="section-block">
       <div class="section-header">

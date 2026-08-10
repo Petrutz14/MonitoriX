@@ -1,0 +1,40 @@
+<div class="login-wrapper">
+  <div class="login-card">
+    <h1 class="brand">MonitoriX</h1>
+    <h2>{{ mode === 'login' ? 'Sign in' : 'Create account' }}</h2>
+
+    <form (ngSubmit)="submit()">
+      <div class="field">
+        <label>Username</label>
+        <input type="text" [(ngModel)]="username" name="username" required autocomplete="username" />
+      </div>
+
+      @if (mode === 'register') {
+        <div class="field">
+          <label>Email</label>
+          <input type="email" [(ngModel)]="email" name="email" required autocomplete="email" />
+        </div>
+      }
+
+      <div class="field">
+        <label>Password</label>
+        <input type="password" [(ngModel)]="password" name="password" required autocomplete="current-password" />
+      </div>
+
+      @if (error) {
+        <p class="error">{{ error }}</p>
+      }
+
+      <button type="submit" [disabled]="loading">
+        {{ loading ? 'Please wait…' : (mode === 'login' ? 'Sign in' : 'Register') }}
+      </button>
+    </form>
+
+    <p class="switch">
+      {{ mode === 'login' ? "Don't have an account?" : 'Already have an account?' }}
+      <button type="button" class="link-btn" (click)="toggleMode()">
+        {{ mode === 'login' ? 'Register' : 'Sign in' }}
+      </button>
+    </p>
+  </div>
+</div>

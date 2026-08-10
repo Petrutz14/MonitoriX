@@ -1,11 +1,12 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { catchError, forkJoin, of, Subscription } from 'rxjs';
 import { MetricService } from '../../services/metric.service';
 import { MachineService } from '../../services/machine.service';
 import { AlertService } from '../../services/alert.service';
 import { WebSocketService } from '../../services/websocket.service';
+import { AuthService } from '../../services/auth.service';
 import { MetricResponse } from '../../models/metric-response.model';
 import { MachineResponse } from '../../models/machine-response.model';
 import { AlertResponse } from '../../models/alert.model';
@@ -32,6 +33,8 @@ export class Dashboard implements OnInit, OnDestroy {
     private machineService: MachineService,
     private alertService: AlertService,
     private webSocketService: WebSocketService,
+    private authService: AuthService,
+    private router: Router,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -182,6 +185,11 @@ export class Dashboard implements OnInit, OnDestroy {
     if (d > 0) return `${d}d ${h}h ${m}m`;
     if (h > 0) return `${h}h ${m}m`;
     return `${m}m`;
+  }
+
+  logout(): void {
+    this.authService.logout();
+    this.router.navigate(['/login']);
   }
 
   ngOnDestroy(): void {
