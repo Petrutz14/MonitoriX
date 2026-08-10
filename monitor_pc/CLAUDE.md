@@ -31,14 +31,16 @@ MonitoriX/
 
 ```
 src/main/java/com/monitorpc/monitor_pc/
-├── controller/     MachineController, MetricController, AlertController
+├── controller/     MachineController, MetricController, AlertController, AuthController
 ├── service/        MachineService, MetricIngestionService, AlertEvaluationService,
-│                   AlertRuleService, MachineHealthService
-├── model/          Machine, SystemMetric, TopProcess, DiskPartition, AlertRule, Alert
+│                   AlertRuleService, MachineHealthService, AuthService
+├── model/          Machine, SystemMetric, TopProcess, DiskPartition, AlertRule, Alert, User
 ├── repository/     one JpaRepository per entity (+ custom @Query methods)
 ├── dto/            AgentPayloadDTO (inbound), *ResponseDTO (outbound), *RequestDTO (rules in)
+│                   LoginRequestDTO, RegisterRequestDTO, AgentRegisterRequestDTO, AuthResponseDTO
 ├── mapper/         MachineMapper, MetricMapper, AlertMapper  (MapStruct compile-time)
 ├── enums/          MachineStatus, MetricType, AlertOperator, AlertSeverity, AlertStatus
+├── config/         SecurityConfig  (JWT RSA, filter chain, CORS, password encoder)
 ├── websocket/      WebSocketConfig  (STOMP broker, /ws endpoint, /topic prefix)
 └── exception/      ResourceNotFound, GlobalExceptionHandler
 ```
@@ -61,16 +63,31 @@ src/main/java/com/monitorpc/monitor_pc/
 
 ### REST API
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/machines` | List all machines |
-| PATCH | `/api/machines/{id}` | Update display name |
-| POST | `/api/metrics` | Ingest agent payload |
-| GET | `/api/metrics/{id}` | Latest metric for a machine |
-| GET | `/api/metrics/{id}/history` | Historical metrics |
-| GET/POST/DELETE | `/api/alert-rules` | Manage alert rules |
-| PATCH | `/api/alert-rules/{id}/toggle` | Enable/disable rule |
-| GET | `/api/alerts/{id}/active` | Active alerts for a machine |
+| Method | Path | Auth required | Description |
+|--------|------|---------------|-------------|
+| POST | `/api/auth/register` | No | Register a human user |
+| POST | `/api/auth/login` | No | Login → returns JWT |
+| POST | `/api/auth/register-agent` | No (secret header) | Self-register an agent (see below) |
+| GET | `/api/machines` | JWT | List all machines |
+| PATCH | `/api/machines/{id}` | JWT | Update display name |
+| POST | `/api/metrics` | JWT (`ROLE_AGENT`) | Ingest agent payload |
+| GET | `/api/metrics/{id}` | JWT | Latest metric for a machine |
+| GET | `/api/metrics/{id}/history` | JWT | Historical metrics |
+| GET/POST/DELETE | `/api/alert-rules` | JWT | Manage alert rules |
+| PATCH | `/api/alert-rules/{id}/toggle` | JWT | Enable/disable rule |
+| GET | `/api/alerts/{id}/active` | JWT | Active alerts for a machine |
+
+### Authentication
+
+JWT-based, stateless. RSA keys in `src/main/resources/certs/`. Token issued on login/register; send as `Authorization: Bearer <token>`.
+
+**Agent self-registration** — `POST /api/auth/register-agent`:
+- Header: `X-Agent-Secret: <value>` must match `agent.registration-secret` in `application.properties` (dev value: `demo_secret`).
+- `MonitorX_Metrics.py` constant: `AGENT_REGISTRATION_SECRET = "demo_secret"` — keep in sync with `application.properties`.
+- Registered agents get `ROLE_AGENT`; only that role may `POST /api/metrics`.
+
+**Public endpoints:** `/api/auth/**`, `/ws/**`, `OPTIONS /**`.
+**All others** require a valid JWT.
 
 ### WebSocket
 
@@ -108,6 +125,14 @@ src/app/
 ## Python Agent — `MonitorX_Metrics.py`
 
 Collects CPU, RAM, disk, uptime, top-5 processes, all disk partitions every 15 s and POSTs to `http://localhost:8080/api/metrics`. Auto-detects hostname and OS.
+
+On first run, self-registers via `POST /api/auth/register-agent` using `AGENT_REGISTRATION_SECRET`. Logs in to obtain a JWT, then attaches it as `Authorization: Bearer <token>` on every metrics POST. Key constants at the top of the file:
+
+```python
+AGENT_REGISTRATION_SECRET = "demo_secret"   # must match agent.registration-secret in application.properties
+AGENT_USERNAME = platform.node()             # hostname as username
+AGENT_PASSWORD = "agent-secret-change-me"   # per-agent password
+```
 
 ---
 
@@ -248,6 +273,15 @@ cd monitor_pc && ./mvnw clean package -q
 # Frontend
 cd MonitorX_Frontend && ng build && npm test
 ```
+
+---
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `Invalid registration secret` (agent register) | `AGENT_REGISTRATION_SECRET` in `MonitorX_Metrics.py` doesn't match `agent.registration-secret` in `application.properties` | Sync both to the same value |
+| `String cannot be resolved to a type` at startup | Stale/corrupt `.class` files in `target/` | `./mvnw clean compile` or IntelliJ **Build → Rebuild Project** |
 
 ---
 

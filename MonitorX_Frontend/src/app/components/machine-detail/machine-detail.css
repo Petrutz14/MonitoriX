@@ -596,6 +596,87 @@
 /* ── Recent alerts table ── */
 .alerts-table-wrap { overflow-x: auto; }
 
+/* ── History chart ── */
+.history-tabs {
+  display: flex;
+  gap: 2px;
+}
+
+.history-tab {
+  font-family: inherit;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid #30363d;
+  color: #484f58;
+  letter-spacing: 0.06em;
+}
+.history-tab--active { border-color: #58a6ff; color: #58a6ff; background: #0d1a2e; }
+.history-tab:hover:not(.history-tab--active) { border-color: #484f58; color: #8b949e; }
+
+.chart-wrap {
+  padding: 0.75rem 0.75rem 0.5rem;
+}
+
+.history-chart {
+  width: 100%;
+  height: 90px;
+  display: block;
+}
+
+.chart-line {
+  stroke-width: 1.5;
+  fill: none;
+}
+.chart-line--cpu  { stroke: #58a6ff; }
+.chart-line--ram  { stroke: #3fb950; }
+.chart-line--disk { stroke: #d29922; }
+
+.chart-threshold {
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+.chart-threshold--danger { stroke: rgba(248,81,73,.4); }
+.chart-threshold--warn   { stroke: rgba(210,153,34,.4); }
+
+.chart-legend {
+  display: flex;
+  gap: 1rem;
+  padding: 0.4rem 0 0;
+  justify-content: center;
+}
+
+.chart-legend-item {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.chart-legend-item::before {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 2px;
+  border-radius: 1px;
+}
+.chart-legend-item--cpu  { color: #58a6ff; }
+.chart-legend-item--cpu::before  { background: #58a6ff; }
+.chart-legend-item--ram  { color: #3fb950; }
+.chart-legend-item--ram::before  { background: #3fb950; }
+.chart-legend-item--disk { color: #d29922; }
+.chart-legend-item--disk::before { background: #d29922; }
+
+.chart-loading {
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+}
+
 /* ── Responsive ── */
 @media (max-width: 700px) {
   .gauge-row   { grid-template-columns: 1fr; }
