@@ -1,5 +1,10 @@
 <div class="detail">
 
+  <header class="topbar">
+    <span class="topbar-brand">MonitoriX</span>
+    <button class="logout-btn" (click)="logout()">Sign out</button>
+  </header>
+
   <!-- ── Breadcrumb / back ── -->
   <div class="breadcrumb">
     <a routerLink="/dashboard" class="back-link">← All Machines</a>
@@ -203,10 +208,17 @@
     <div class="section-block">
       <div class="section-header">
         <span class="section-title">METRIC HISTORY</span>
-        <div class="history-tabs">
-          <button class="history-tab" [class.history-tab--active]="historyMinutes === 30"  (click)="setHistoryWindow(30)">30m</button>
-          <button class="history-tab" [class.history-tab--active]="historyMinutes === 60"  (click)="setHistoryWindow(60)">1h</button>
-          <button class="history-tab" [class.history-tab--active]="historyMinutes === 120" (click)="setHistoryWindow(120)">2h</button>
+        <div class="history-controls">
+          <div class="history-view-toggle">
+            <button class="history-tab" [class.history-tab--active]="historyView === 'graph'" (click)="setHistoryView('graph')">Graph</button>
+            <button class="history-tab" [class.history-tab--active]="historyView === 'table'" (click)="setHistoryView('table')">Table</button>
+          </div>
+          <div class="history-tabs">
+            <button class="history-tab" [class.history-tab--active]="historyMinutes === 30"   (click)="setHistoryWindow(30)">30m</button>
+            <button class="history-tab" [class.history-tab--active]="historyMinutes === 60"   (click)="setHistoryWindow(60)">1h</button>
+            <button class="history-tab" [class.history-tab--active]="historyMinutes === 120"  (click)="setHistoryWindow(120)">2h</button>
+            <button class="history-tab" [class.history-tab--active]="historyMinutes === 1440" (click)="setHistoryWindow(1440)">24h</button>
+          </div>
         </div>
       </div>
       @if (historyLoading) {
@@ -215,7 +227,7 @@
         <div class="section-empty">Failed to load history. Check backend connection.</div>
       } @else if (historyData.length < 2) {
         <div class="section-empty">Not enough history yet — metrics accumulate every 15 s.</div>
-      } @else {
+      } @else if (historyView === 'graph') {
         <div class="chart-wrap">
           <svg class="history-chart" viewBox="0 0 600 100" preserveAspectRatio="none" aria-hidden="true">
             <line x1="20" y1="22" x2="580" y2="22" class="chart-threshold chart-threshold--danger" vector-effect="non-scaling-stroke" />
@@ -229,6 +241,24 @@
             <span class="chart-legend-item chart-legend-item--ram">RAM</span>
             <span class="chart-legend-item chart-legend-item--disk">Disk</span>
           </div>
+        </div>
+      } @else {
+        <div class="history-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>Time</th><th>CPU %</th><th>RAM %</th><th>Disk %</th></tr>
+            </thead>
+            <tbody>
+              @for (row of historyTableData; track row.recordedAt) {
+                <tr>
+                  <td class="muted">{{ row.recordedAt | date:'HH:mm:ss' }}</td>
+                  <td [class]="'color-' + getAlertClass(row.cpuPercent)">{{ row.cpuPercent | number:'1.1-1' }}%</td>
+                  <td [class]="'color-' + getAlertClass(row.ramPercent)">{{ row.ramPercent | number:'1.1-1' }}%</td>
+                  <td [class]="'color-' + getAlertClass(row.diskPercent)">{{ row.diskPercent | number:'1.1-1' }}%</td>
+                </tr>
+              }
+            </tbody>
+          </table>
         </div>
       }
     </div>
