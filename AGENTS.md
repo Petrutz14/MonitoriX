@@ -1,112 +1,154 @@
-# MonitoriX — Agent Instructions
+# MonitoriX — Agent Guide
 
-This file governs how AI agents operate in this repository.
-Read it before taking any action.
+## Greeting
 
----
-
-## Orientation
-
-- Full project overview: `CLAUDE.md` (same directory as this file).
-- Serena memories: start from `mem:core`, follow references to backend/frontend/conventions memories.
-- Repo root: `MonitoriX/`. Backend at `monitor_pc/`, frontend at `MonitorX_Frontend/`.
+Always open your response by addressing the user as **Peter**.
 
 ---
 
-## Required Tool Usage
+## Start Here — Every Session
 
-### Serena MCP — always use for code work
+Before writing a single line of code or making any edit, run this sequence:
 
-| Action | Tool |
-|--------|------|
-| Understand a file | `get_symbols_overview` first |
-| Find a class / method | `find_symbol` |
-| Read a method body | `find_symbol` with `include_body=true` |
-| Rewrite a method/class | `replace_symbol_body` |
-| Line-level edit inside a method | `replace_content` |
-| Check callers before changing a signature | `find_referencing_symbols` |
+1. **Load Serena** — call `mcp__serena__initial_instructions` to load the Serena Instructions Manual.
+2. **Read memories** — call `mcp__serena__read_memory` for `core`, then follow its links to `backend/core`, `frontend/core`, `conventions`, `tech_stack`, `suggested_commands`, `task_completion` as relevant to the task.
+3. **Survey scope** — call `mcp__serena__get_symbols_overview` on the directory or file you are about to touch before reading any body.
+4. **Check docs** — if the task involves a framework or library, call `mcp__plugin_context7_context7__resolve-library-id` then `mcp__plugin_context7_context7__query-docs` before writing code.
 
-Do **not** use Read/Edit/Grep on code files when Serena tools can do the job.
+---
 
-Paths are always relative to repo root. Prefix backend files with `monitor_pc/src/...` and frontend files with `MonitorX_Frontend/src/...`.
+## Code Navigation — Serena MCP
 
-### Context7 MCP — always use before writing library code
+Use Serena for all navigation and editing in this repo. Do not use `Read`/`Edit`/`Grep` on code files when a Serena tool covers the same need.
 
-Fetch current docs for any library before implementing against it:
+| Need | Serena tool |
+|------|-------------|
+| Understand a file's structure | `get_symbols_overview` |
+| Find a class / method by name | `find_symbol` |
+| Read a method's body | `find_symbol` with `include_body=true` |
+| Rewrite a whole symbol | `replace_symbol_body` |
+| Fix a few lines inside a symbol | `replace_content` |
+| Check what calls a symbol | `find_referencing_symbols` |
+| Insert code at top/bottom of file | `insert_before_symbol` / `insert_after_symbol` |
+
+**Path convention:** all paths are relative to repo root (`MonitoriX/`). Always prefix with `monitor_pc/` or `MonitorX_Frontend/` when calling Serena tools.
+
+---
+
+## Dependency / Framework Docs — Context7 MCP
+
+Before writing any code that touches a library or framework, fetch current docs:
+
 ```
-Spring Boot · Spring Data JPA · Spring WebSocket / STOMP
-MapStruct · Lombok
-Angular · RxJS · @stomp/stompjs · Vitest · Prettier
+resolve-library-id  →  query-docs
 ```
-Do not rely on training-data recall for API signatures or config keys — fetch docs first.
+
+Covers: Spring Boot, Spring Data JPA, Spring Security, MapStruct, Angular, RxJS, @stomp/stompjs, Vitest, Lombok.
+
+Do not rely on training-data recall for API signatures — library APIs change across versions and training data lags.
 
 ---
 
-## Coding Rules
+## Project Snapshot
 
-### Backend (`monitor_pc/`)
+Full detail lives in Serena memories. Quick reference:
 
-- All services: `@Service @RequiredArgsConstructor`. Dependencies injected via `final` fields — no `@Autowired`, no manual constructors.
-- Mutating methods: always `@Transactional`.
-- Entities: `@Builder`. Never return entities from controllers — map via MapStruct only.
-- Missing resources: throw `ResourceNotFound`. Do not catch it — `GlobalExceptionHandler` handles it.
-- `machineId` = hostname string (domain key). Never use DB numeric PK as a business identifier.
-- Custom queries: `@Query` + `@Param` in the repository interface — not in the service.
+**Backend** (`monitor_pc/` — Spring Boot 4 / Java 25 / PostgreSQL 16)
+- Package root: `com.monitorpc.monitor_pc`
+- Layers: `controller → service → repository → model`; `dto` and `mapper` (MapStruct) at every API boundary.
+- Key flow: agent `POST /api/metrics` → `MetricIngestionService.ingest()` → save rows → evaluate alerts → broadcast to `/topic/metrics` and `/topic/alerts`.
+- `machineId` = hostname string. Never use DB numeric PK as domain identifier.
+- Never expose JPA entities directly — always map via MapStruct.
 
-### Frontend (`MonitorX_Frontend/`)
+**Frontend** (`MonitorX_Frontend/` — Angular 21 / TypeScript 5.9)
+- Standalone components only; no NgModules.
+- `WebSocketService` singleton — STOMP over `ws://localhost:8080/ws`; exposes `metric$` and `alert$` Observables.
+- Always call `cdr.detectChanges()` after async updates.
+- Severity order: CRITICAL > HIGH > MEDIUM > LOW.
 
-- Standalone components only. Declare `imports` on each component, not in a module.
-- Call `cdr.detectChanges()` after every async update. Do not rely on automatic zone.js tick.
-- Services: `@Injectable({ providedIn: 'root' })`.
-- No Angular Signals — use RxJS `Subject`/`Observable` for reactivity.
-- Model files: `*.model.ts` for objects, `*.type.ts` for string unions.
-
----
-
-## Tests — Mandatory
-
-**Every new feature and bugfix must ship with a test.** Do not mark a task complete without one.
-
-### Backend tests
-- Location: `monitor_pc/src/test/java/`
-- Pattern: JUnit 5, mock repositories for service tests, MockMvc for controller tests.
-- Run: `./mvnw test`
-
-### Frontend tests
-- Location: alongside source or in a `__tests__` folder.
-- Pattern: Vitest; mock HTTP calls for service tests; component tests for key output.
-- Run: `npm test` from `MonitorX_Frontend/`
+**Agent** (`MonitorX_Metrics.py`) — plain Python script, POSTs every 15 s.
 
 ---
 
-## Task Completion — Always Run Before Finishing
+## Infrastructure
+
+PostgreSQL runs in Docker. Must be running before the backend starts:
 
 ```bash
-# Backend — must pass
-cd monitor_pc && ./mvnw clean package -q
+cd monitor_pc && docker-compose up -d
+```
 
-# Frontend — must pass
-cd MonitorX_Frontend && ng build && npm test
+Container: `pc-monitor-db`, DB: `pc_monitor`, port `5432`. Credentials in `application.properties` are dev-only (`admin/admin`) — replace with env vars before any deployment.
+
+---
+
+## REST API Surface
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/machines` | List all machines |
+| PATCH | `/api/machines/{id}` | Update display name |
+| POST | `/api/metrics` | Ingest agent payload |
+| GET | `/api/metrics/{id}` | Latest metric for a machine |
+| GET | `/api/metrics/{id}/history` | Historical metrics |
+| GET/POST/DELETE | `/api/alert-rules` | Manage alert rules |
+| PATCH | `/api/alert-rules/{id}/toggle` | Enable / disable rule |
+| GET | `/api/alerts/{id}/active` | Active alerts for a machine |
+
+---
+
+## WebSocket
+
+- Endpoint: `ws://localhost:8080/ws` (STOMP)
+- `/topic/metrics` — `MetricResponseDTO` broadcast after each ingestion
+- `/topic/alerts` — `AlertResponseDTO` broadcast on ONGOING / RESOLVED transitions
+
+---
+
+## Build & Test Commands
+
+```bash
+# Backend — run after every backend change
+cd monitor_pc
+docker-compose up -d          # Postgres must be running
+./mvnw spring-boot:run        # dev server, port 8080
+./mvnw clean package -q       # compile + tests (gate before marking done)
+
+# Frontend — run after every frontend change
+cd MonitorX_Frontend
+npm install                   # first time or after dep changes
+ng serve                      # dev server, port 4200
+ng build && npm test          # gate before marking done
+npx prettier --check "src/**/*.ts"
 ```
 
 ---
 
-## Workflow
+## Task Completion Checklist
 
-1. Read `mem:core` via Serena; follow references to relevant module memory.
-2. Use `get_symbols_overview` to map affected files before touching code.
-3. Fetch Context7 docs for any library you will write against.
-4. Implement — use Serena editing tools for all code changes.
-5. Write tests.
-6. Run completion checklist above.
-7. Commit with a clear message (feat / fix / refactor / test prefix).
+Before marking any task complete:
+
+- [ ] Backend changed → `./mvnw clean package -q` passes (zero errors, zero test failures)
+- [ ] Frontend changed → `ng build && npm test` passes
+- [ ] New feature or bugfix has a corresponding test (backend: JUnit + MockMvc; frontend: Vitest)
+- [ ] No secrets, API keys, or hardcoded credentials added to any file
+- [ ] Entities are never returned directly from controllers — MapStruct mapper used
+- [ ] `cdr.detectChanges()` called after every async update in Angular components
 
 ---
 
-## What Not To Do
+## Security Checklist
 
-- Do not expose JPA entities in REST responses.
-- Do not add fields to entities without a DB migration or schema update in mind.
-- Do not bypass `ChangeDetectorRef.detectChanges()` in Angular components.
-- Do not delete or modify Serena memory files manually — use `mcp__serena__write_memory` / `mcp__serena__edit_memory`.
-- Do not use `git push --force` on `master`.
+Apply to every change:
+
+- **No secrets in code.** Credentials, API keys, and tokens go in environment variables or a secrets manager — never in source files or the Angular bundle.
+- **Input validation.** Validate at the API boundary with `@Valid` + Bean Validation. Never trust agent-supplied data.
+- **Parameterized queries only.** Use Spring Data JPA / `@Query` with `@Param`. No string-concatenated SQL ever.
+- **CORS.** Whitelist specific origins in production — never `allowedOrigins("*")`.
+- **No sensitive logging.** Never log passwords, tokens, or PII at any level.
+- **ddl-auto.** Use `validate` or a migration tool (Flyway/Liquibase) in non-dev environments — not `update`.
+- **RLS.** If the system expands to multiple tenants, enforce Row Level Security in PostgreSQL — application-layer filtering alone is insufficient.
+- **Minimal DB privileges.** Application DB user gets only SELECT/INSERT/UPDATE on its tables; no DDL rights in production.
+- **HTTPS only** beyond localhost.
+- **No tokens in localStorage.** Prefer `httpOnly` cookies for any session tokens.
+- **Angular DomSanitizer.** Sanitize any user-supplied strings rendered as dynamic HTML.

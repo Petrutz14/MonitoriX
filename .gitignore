@@ -10,7 +10,7 @@ env/
 .DS_Store
 Thumbs.db
 
-# Claude Code session data
+# Claude Code
 .claude/
 
 # Project docs
