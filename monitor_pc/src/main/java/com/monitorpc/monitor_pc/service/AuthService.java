@@ -1,5 +1,6 @@
 package com.monitorpc.monitor_pc.service;
 
+import com.monitorpc.monitor_pc.dto.AgentRegisterRequestDTO;
 import com.monitorpc.monitor_pc.dto.AuthResponseDTO;
 import com.monitorpc.monitor_pc.dto.LoginRequestDTO;
 import com.monitorpc.monitor_pc.dto.RegisterRequestDTO;
@@ -7,6 +8,7 @@ import com.monitorpc.monitor_pc.exception.ResourceNotFound;
 import com.monitorpc.monitor_pc.model.User;
 import com.monitorpc.monitor_pc.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -29,6 +31,9 @@ public class AuthService {
     private final JwtEncoder jwtEncoder;
     private final AuthenticationManager authenticationManager;
 
+    @Value("${agent.registration-secret}")
+    private String registrationSecret;
+
     @Transactional
     public AuthResponseDTO register(RegisterRequestDTO request) {
         if (userRepository.existsByUsername(request.username())) {
@@ -42,6 +47,24 @@ public class AuthService {
                 .role("ROLE_USER")
                 .build();
 
+        userRepository.save(user);
+        return new AuthResponseDTO(issueToken(user.getUsername(), user.getRole()));
+    }
+
+    @Transactional
+    public AuthResponseDTO registerAgent(AgentRegisterRequestDTO request, String secret) {
+        if (!registrationSecret.equals(secret)) {
+            throw new IllegalArgumentException("Invalid registration secret");
+        }
+        if (userRepository.existsByUsername(request.username())) {
+            throw new IllegalArgumentException("Username already taken");
+        }
+        User user = User.builder()
+                .username(request.username())
+                .email(request.username() + "@monitorix.internal")
+                .password(passwordEncoder.encode(request.password()))
+                .role("ROLE_AGENT")
+                .build();
         userRepository.save(user);
         return new AuthResponseDTO(issueToken(user.getUsername(), user.getRole()));
     }
