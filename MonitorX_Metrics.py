@@ -9,7 +9,7 @@ API_URL = f"{BASE_URL}/api/metrics"
 AUTH_URL = f"{BASE_URL}/api/auth/login"
 AGENT_USERNAME = platform.node()
 AGENT_PASSWORD = "agent-secret-change-me"
-AGENT_REGISTRATION_SECRET = "change-me-before-deploy"
+AGENT_REGISTRATION_SECRET = "demo_secret"
 REGISTER_AGENT_URL = f"{BASE_URL}/api/auth/register-agent"
 
 MACHINE_ID = platform.node()
