@@ -1,5 +1,7 @@
 # MonitoriX
 
+WIP!!!
+
 A real-time PC monitoring system. A lightweight Python agent runs on each machine and sends system metrics to a Spring Boot backend every 15 seconds. An Angular dashboard displays live CPU, RAM, and disk usage across all connected machines and fires alerts based on configurable rules.
 
 ## Stack
