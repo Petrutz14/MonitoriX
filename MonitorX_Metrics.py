@@ -4,13 +4,49 @@ import time
 import platform
 import socket
 
-API_URL = "http://localhost:8080/api/metrics"
-MACHINE_ID = platform.node()
-DISPLAY_NAME = platform.node()   # change this to a friendlier name if you want
-INTERVAL = 15
+BASE_URL = "http://localhost:8080"
+API_URL = f"{BASE_URL}/api/metrics"
+AUTH_URL = f"{BASE_URL}/api/auth/login"
+AGENT_USERNAME = platform.node()
+AGENT_PASSWORD = "agent-secret-change-me"
+AGENT_REGISTRATION_SECRET = "change-me-before-deploy"
+REGISTER_AGENT_URL = f"{BASE_URL}/api/auth/register-agent"
 
-# Root mountpoint differs by OS
+MACHINE_ID = platform.node()
+DISPLAY_NAME = platform.node()
+INTERVAL = 15
+MEASURE_SECONDS = 1.5  # cpu_percent(1s) + 0.5s process-counter settle
+
 ROOT_MOUNT = 'C:\\' if platform.system() == 'Windows' else '/'
+CPU_COUNT = psutil.cpu_count() or 1
+# PIDs 0 and 4 are Windows kernel pseudo-processes — cpu_percent always returns garbage for them
+SKIP_PIDS = {0, 4} if platform.system() == 'Windows' else set()
+
+_token = None
+
+
+def get_token():
+    global _token
+    resp = requests.post(AUTH_URL, json={"username": AGENT_USERNAME, "password": AGENT_PASSWORD}, timeout=5)
+    resp.raise_for_status()
+    _token = resp.json()["token"]
+
+
+def ensure_authenticated():
+    try:
+        get_token()
+    except requests.HTTPError:
+        requests.post(
+            REGISTER_AGENT_URL,
+            json={"username": AGENT_USERNAME, "password": AGENT_PASSWORD},
+            headers={"X-Agent-Secret": AGENT_REGISTRATION_SECRET},
+            timeout=5
+        ).raise_for_status()
+        get_token()
+
+
+def auth_headers():
+    return {"Authorization": f"Bearer {_token}"}
 
 
 def get_ip():
@@ -25,7 +61,6 @@ def get_ip():
 
 
 def prime_cpu_counters():
-    """Call cpu_percent(interval=None) on every process to set baseline timestamps."""
     for p in psutil.process_iter():
         try:
             p.cpu_percent(interval=None)
@@ -33,14 +68,9 @@ def prime_cpu_counters():
             pass
 
 
-CPU_COUNT = psutil.cpu_count() or 1
-# Windows kernel pseudo-processes — can't be primed, always return garbage CPU values
-SKIP_PIDS = {0, 4} if platform.system() == 'Windows' else set()
-
 def get_top_processes(n=5):
-    """Read cpu_percent after counters have already been primed + slept."""
     total_ram = psutil.virtual_memory().total
-    max_cpu   = 100.0 * CPU_COUNT   # theoretical ceiling for one process
+    max_cpu = 100.0 * CPU_COUNT
     procs = []
     for p in psutil.process_iter(['pid', 'name', 'memory_percent']):
         try:
@@ -79,41 +109,40 @@ def get_disk_partitions():
     return partitions
 
 
+ensure_authenticated()
+
 while True:
-    # Prime process CPU counters at the very start of the cycle
     prime_cpu_counters()
-
-    # Collect CPU (1 s interval) and RAM concurrently with the prime sleep
     cpu = psutil.cpu_percent(interval=1)
-
-    # Sleep the remaining 0.5 s so process counters have a full ~1.5 s window
-    time.sleep(0.5)
+    time.sleep(0.5)  # let process counters settle over the full ~1.5s window
 
     root_usage = psutil.disk_usage(ROOT_MOUNT)
     ram = psutil.virtual_memory()
 
     data = {
-        "machineId":    MACHINE_ID,
-        "displayName":  DISPLAY_NAME,
-        "cpuPercent":   cpu,
-        "ramPercent":   ram.percent,
-        "ramUsedGb":    round(ram.used  / (1024 ** 3), 2),
-        "diskPercent":  root_usage.percent,
-        "diskFreeGb":   round(root_usage.free / (1024 ** 3), 2),
-        "uptimeSeconds": int(time.time() - psutil.boot_time()),
-        "osName":       f"{platform.system()} {platform.release()}",
-        "ipAddress":    get_ip(),
-        "totalRamGb":   round(ram.total / (1024 ** 3), 2),
-        "topProcesses": get_top_processes(5),
+        "machineId":      MACHINE_ID,
+        "displayName":    DISPLAY_NAME,
+        "cpuPercent":     cpu,
+        "ramPercent":     ram.percent,
+        "ramUsedGb":      round(ram.used / (1024 ** 3), 2),
+        "diskPercent":    root_usage.percent,
+        "diskFreeGb":     round(root_usage.free / (1024 ** 3), 2),
+        "uptimeSeconds":  int(time.time() - psutil.boot_time()),
+        "osName":         f"{platform.system()} {platform.release()}",
+        "ipAddress":      get_ip(),
+        "totalRamGb":     round(ram.total / (1024 ** 3), 2),
+        "topProcesses":   get_top_processes(5),
         "diskPartitions": get_disk_partitions()
     }
 
     try:
-        r = requests.post(API_URL, json=data, timeout=5)
+        r = requests.post(API_URL, json=data, headers=auth_headers(), timeout=5)
+        if r.status_code == 401:
+            get_token()
+            r = requests.post(API_URL, json=data, headers=auth_headers(), timeout=5)
         print(f"Sent: CPU={data['cpuPercent']}% RAM={data['ramPercent']}% "
-              f"Disk={data['diskPercent']}% Processes={len(data['topProcesses'])} "
-              f"Partitions={len(data['diskPartitions'])} -> {r.status_code}")
+              f"Disk={data['diskPercent']}% -> {r.status_code}")
     except Exception as e:
         print(f"Failed: {e}")
 
-    time.sleep(INTERVAL - 1.5)  # subtract the 1.5 s already spent above
+    time.sleep(INTERVAL - MEASURE_SECONDS)
