@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin, Subscription } from 'rxjs';
@@ -7,6 +7,7 @@ import { MetricService } from '../../services/metric.service';
 import { MachineService } from '../../services/machine.service';
 import { AlertService } from '../../services/alert.service';
 import { WebSocketService } from '../../services/websocket.service';
+import { AuthService } from '../../services/auth.service';
 import { MetricResponse } from '../../models/metric-response.model';
 import { MachineResponse } from '../../models/machine-response.model';
 import { AlertResponse, AlertRuleRequest, AlertRuleResponse } from '../../models/alert.model';
@@ -40,18 +41,35 @@ export class MachineDetail implements OnInit, OnDestroy {
   historyMinutes = 30;
   historyLoading = false;
   historyError = false;
+  historyView: 'graph' | 'table' = 'graph';
 
   private wsSub?: Subscription;
   private alertSub?: Subscription;
 
   constructor(
     private route: ActivatedRoute,
+    private router: Router,
     private metricService: MetricService,
     private machineService: MachineService,
     private alertService: AlertService,
     private webSocketService: WebSocketService,
+    private authService: AuthService,
     private cdr: ChangeDetectorRef
   ) {}
+
+  logout(): void {
+    this.authService.logout();
+    this.router.navigate(['/login']);
+  }
+
+  setHistoryView(view: 'graph' | 'table'): void {
+    this.historyView = view;
+    this.cdr.detectChanges();
+  }
+
+  get historyTableData(): MetricResponse[] {
+    return this.historyData.slice().reverse();
+  }
 
   ngOnInit(): void {
     this.machineId = this.route.snapshot.paramMap.get('machineId') ?? '';

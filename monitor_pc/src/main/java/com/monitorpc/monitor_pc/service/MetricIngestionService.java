@@ -1,6 +1,7 @@
 package com.monitorpc.monitor_pc.service;
 
 import com.monitorpc.monitor_pc.dto.AgentPayloadDTO;
+import com.monitorpc.monitor_pc.dto.MetricBucketProjection;
 import com.monitorpc.monitor_pc.dto.MetricResponseDTO;
 import com.monitorpc.monitor_pc.dto.TopProcessDTO;
 import com.monitorpc.monitor_pc.enums.MachineStatus;
@@ -123,17 +124,19 @@ public class MetricIngestionService {
                 diskPartitionRepository.findAllBySystemMetric(systemMetric));
     }
 
-    public List<MetricResponseDTO> getHistory(String machineId, Integer minutes){
+    public List<MetricBucketProjection> getHistory(String machineId, Integer minutes) {
         Machine machine = machineRepository
                 .findByMachineId(machineId)
                 .orElseThrow(() -> new ResourceNotFound("Machine not found: " + machineId));
         Instant cutoff = Instant.now().minusSeconds(minutes * 60L);
-        return systemMetricRepository
-                .findAllByMachineAndRecordedAtAfterOrderByRecordedAtDesc(machine, cutoff)
-                .stream()
-                .map(metric -> metricMapper.toDTO(metric, machine,
-                        topProcessRepository.findAllBySystemMetric(metric),
-                        diskPartitionRepository.findAllBySystemMetric(metric)))
-                .toList();
+        return systemMetricRepository.findBucketedHistory(machine.getId(), cutoff, bucketSeconds(minutes));
     }
+
+    private int bucketSeconds(int minutes) {
+        if (minutes <= 60)   return 15;
+        if (minutes <= 360)  return 60;
+        if (minutes <= 1440) return 300;
+        return 3600;
+    }
+
 }

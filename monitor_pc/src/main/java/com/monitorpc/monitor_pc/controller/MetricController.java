@@ -1,6 +1,7 @@
 package com.monitorpc.monitor_pc.controller;
 
 import com.monitorpc.monitor_pc.dto.AgentPayloadDTO;
+import com.monitorpc.monitor_pc.dto.MetricBucketProjection;
 import com.monitorpc.monitor_pc.dto.MetricResponseDTO;
 import com.monitorpc.monitor_pc.service.MetricIngestionService;
 import lombok.RequiredArgsConstructor;
@@ -33,11 +34,11 @@ public class MetricController {
 
     }
 
-    //Endpoint to get metrics history in last x minutes or 30 by default
     @GetMapping("/{machineId}/history")
-    public ResponseEntity<List<MetricResponseDTO>> getMetricHistory(@PathVariable String machineId,@RequestParam(defaultValue = "30") Integer minutes){
-        List<MetricResponseDTO> metricResponseDTOs = metricIngestionService.getHistory(machineId,minutes);
-        return ResponseEntity.status(HttpStatus.OK).body(metricResponseDTOs);
+    public ResponseEntity<List<MetricBucketProjection>> getMetricHistory(
+            @PathVariable String machineId,
+            @RequestParam(defaultValue = "30") Integer minutes) {
+        return ResponseEntity.ok(metricIngestionService.getHistory(machineId, minutes));
     }
 
 }

@@ -57,6 +57,7 @@ Full detail lives in Serena memories. Quick reference:
 - Package root: `com.monitorpc.monitor_pc`
 - Layers: `controller → service → repository → model`; `dto` and `mapper` (MapStruct) at every API boundary.
 - Key flow: agent `POST /api/metrics` → `MetricIngestionService.ingest()` → save rows → evaluate alerts → broadcast to `/topic/metrics` and `/topic/alerts`.
+- History endpoint returns `MetricBucketProjection` (downsampled averages per time bucket) — **not** raw `SystemMetric` rows. Never revert to returning raw rows; it causes N+1 queries.
 - `machineId` = hostname string. Never use DB numeric PK as domain identifier.
 - Never expose JPA entities directly — always map via MapStruct.
 - Auth: `config/SecurityConfig` — RSA JWT, stateless. `AuthService` handles register/login/registerAgent. `ROLE_AGENT` required for metrics ingest.
@@ -95,7 +96,7 @@ Container: `pc-monitor-db`, DB: `pc_monitor`, port `5432`. Credentials in `appli
 | PATCH | `/api/machines/{id}` | JWT | Update display name |
 | POST | `/api/metrics` | JWT (`ROLE_AGENT`) | Ingest agent payload |
 | GET | `/api/metrics/{id}` | JWT | Latest metric for a machine |
-| GET | `/api/metrics/{id}/history` | JWT | Historical metrics |
+| GET | `/api/metrics/{id}/history` | JWT | Downsampled history (`List<MetricBucketProjection>`). Fields: `bucket`, `avgcpu`, `avgram`, `avgdisk`, `avgramusedgb`, `avgdiskfreegb`. Granularity adapts to `?minutes=`: ≤60→15s, ≤360→1min, ≤1440→5min, else 1hr |
 | GET/POST/DELETE | `/api/alert-rules` | JWT | Manage alert rules |
 | PATCH | `/api/alert-rules/{id}/toggle` | JWT | Enable / disable rule |
 | GET | `/api/alerts/{id}/active` | JWT | Active alerts for a machine |

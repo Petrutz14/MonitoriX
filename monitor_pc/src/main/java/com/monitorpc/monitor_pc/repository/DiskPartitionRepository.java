@@ -8,4 +8,5 @@ import java.util.List;
 
 public interface DiskPartitionRepository extends JpaRepository<DiskPartition,Long> {
     List<DiskPartition> findAllBySystemMetric(SystemMetric systemMetric);
+    List<DiskPartition> findAllBySystemMetricIdIn(List<Long> metricIds);
 }
