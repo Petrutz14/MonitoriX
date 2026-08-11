@@ -8,4 +8,5 @@ import java.util.List;
 
 public interface TopProcessRepository extends JpaRepository<TopProcess,Long> {
     List<TopProcess> findAllBySystemMetric(SystemMetric systemMetric);
+    List<TopProcess> findAllBySystemMetricIdIn(List<Long> metricIds);
 }

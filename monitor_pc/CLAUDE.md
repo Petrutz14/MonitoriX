@@ -38,6 +38,7 @@ src/main/java/com/monitorpc/monitor_pc/
 ├── repository/     one JpaRepository per entity (+ custom @Query methods)
 ├── dto/            AgentPayloadDTO (inbound), *ResponseDTO (outbound), *RequestDTO (rules in)
 │                   LoginRequestDTO, RegisterRequestDTO, AgentRegisterRequestDTO, AuthResponseDTO
+│                   MetricBucketProjection (native query projection for history endpoint)
 ├── mapper/         MachineMapper, MetricMapper, AlertMapper  (MapStruct compile-time)
 ├── enums/          MachineStatus, MetricType, AlertOperator, AlertSeverity, AlertStatus
 ├── config/         SecurityConfig  (JWT RSA, filter chain, CORS, password encoder)
@@ -46,6 +47,12 @@ src/main/java/com/monitorpc/monitor_pc/
 ```
 
 ### Key Data Flows
+
+**History bucketing** (`GET /api/metrics/{id}/history`):
+- `MetricIngestionService.getHistory()` calls `SystemMetricRepository.findBucketedHistory()` — a native `@Query` that groups rows with `TO_TIMESTAMP(FLOOR(EXTRACT(EPOCH FROM recorded_at) / :bucketSeconds) * :bucketSeconds)` and returns averages per bucket.
+- Returns `List<MetricBucketProjection>` — a Spring Data native projection interface. Fields: `getBucket()` (`Instant`), `getAvgcpu()`, `getAvgram()`, `getAvgdisk()`, `getAvgramusedgb()`, `getAvgdiskfreegb()` (`Double`).
+- Bucket granularity chosen by `bucketSeconds(int minutes)`: ≤60→15s, ≤360→60s, ≤1440→300s, else 3600s.
+- **Do not** return raw `SystemMetric` rows from history — this caused N+1 queries (1001 queries for 500 rows) and was replaced by this single aggregating query.
 
 **Metric ingestion** (`POST /api/metrics`):
 1. `MetricIngestionService.ingest()` upserts Machine by `machineId` (hostname); sets `status=ONLINE`, `lastSeen=now`.
@@ -72,7 +79,7 @@ src/main/java/com/monitorpc/monitor_pc/
 | PATCH | `/api/machines/{id}` | JWT | Update display name |
 | POST | `/api/metrics` | JWT (`ROLE_AGENT`) | Ingest agent payload |
 | GET | `/api/metrics/{id}` | JWT | Latest metric for a machine |
-| GET | `/api/metrics/{id}/history` | JWT | Historical metrics |
+| GET | `/api/metrics/{id}/history` | JWT | Downsampled history — returns `List<MetricBucketProjection>` (bucket, avgcpu, avgram, avgdisk, avgramusedgb, avgdiskfreegb). `?minutes=` param (default 30). Bucket granularity adapts: ≤60min→15s, ≤360min→1min, ≤1440min→5min, >1440min→1hr |
 | GET/POST/DELETE | `/api/alert-rules` | JWT | Manage alert rules |
 | PATCH | `/api/alert-rules/{id}/toggle` | JWT | Enable/disable rule |
 | GET | `/api/alerts/{id}/active` | JWT | Active alerts for a machine |
