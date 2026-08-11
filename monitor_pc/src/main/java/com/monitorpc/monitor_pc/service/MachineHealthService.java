@@ -27,7 +27,7 @@ public class MachineHealthService {
         log.info("Checking {} machines", machines.size());
         Instant cutoff = Instant.now().minusSeconds(30);
         for(Machine machine : machines){
-            if(machine.getLastSeen().isBefore(cutoff) && machine.getStatus()!=MachineStatus.OFFLINE){
+            if(machine.getLastSeen() != null && machine.getLastSeen().isBefore(cutoff) && machine.getStatus()!=MachineStatus.OFFLINE){
                 machine.setStatus(MachineStatus.OFFLINE);
                 log.info("Machine {} set to offline",machine.getMachineId());
             }
