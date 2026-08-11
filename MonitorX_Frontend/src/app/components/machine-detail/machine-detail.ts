@@ -9,6 +9,7 @@ import { AlertService } from '../../services/alert.service';
 import { WebSocketService } from '../../services/websocket.service';
 import { AuthService } from '../../services/auth.service';
 import { MetricResponse } from '../../models/metric-response.model';
+import { MetricBucketResponse } from '../../models/metric-bucket-response.model';
 import { MachineResponse } from '../../models/machine-response.model';
 import { AlertResponse, AlertRuleRequest, AlertRuleResponse } from '../../models/alert.model';
 
@@ -37,7 +38,7 @@ export class MachineDetail implements OnInit, OnDestroy {
   ruleFormError = '';
   ruleFormSaving = false;
 
-  historyData: MetricResponse[] = [];
+  historyData: MetricBucketResponse[] = [];
   historyMinutes = 30;
   historyLoading = false;
   historyError = false;
@@ -67,7 +68,7 @@ export class MachineDetail implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
-  get historyTableData(): MetricResponse[] {
+  get historyTableData(): MetricBucketResponse[] {
     return this.historyData.slice().reverse();
   }
 
@@ -93,7 +94,15 @@ export class MachineDetail implements OnInit, OnDestroy {
       if (data.machineId === this.machineId) {
         this.metric = data;
         if (this.machine) this.machine.machineStatus = data.machineStatus;
-        this.historyData = [...this.historyData, data].slice(-480);
+        const bucket: MetricBucketResponse = {
+          bucket: data.recordedAt,
+          avgcpu: data.cpuPercent,
+          avgram: data.ramPercent,
+          avgdisk: data.diskPercent,
+          avgramusedgb: data.ramUsedGb,
+          avgdiskfreegb: data.diskFreeGb,
+        };
+        this.historyData = [...this.historyData, bucket].slice(-480);
         this.cdr.detectChanges();
       }
     });
@@ -152,9 +161,9 @@ export class MachineDetail implements OnInit, OnDestroy {
     }).join(' ');
   }
 
-  get cpuPoints(): string { return this.getChartPoints(this.historyData.map(d => d.cpuPercent)); }
-  get ramPoints(): string { return this.getChartPoints(this.historyData.map(d => d.ramPercent)); }
-  get diskPoints(): string { return this.getChartPoints(this.historyData.map(d => d.diskPercent)); }
+  get cpuPoints():  string { return this.getChartPoints(this.historyData.map(d => d.avgcpu)); }
+  get ramPoints():  string { return this.getChartPoints(this.historyData.map(d => d.avgram)); }
+  get diskPoints(): string { return this.getChartPoints(this.historyData.map(d => d.avgdisk)); }
 
   private loadAlertData(): void {
     forkJoin({

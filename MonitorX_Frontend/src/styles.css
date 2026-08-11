@@ -1,18 +1,75 @@
-* {
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
+:root {
+  /* Surfaces — incremental luminosity steps */
+  --bg:      #131313;
+  --s0:      #0e0e0e;
+  --s1:      #1c1b1b;
+  --s2:      #201f1f;
+  --s3:      #2a2a2a;
+  /* Borders */
+  --border:  #262626;
+  --border2: #404040;
+  --outline: #86948a;
+  --outvar:  #3c4a42;
+  /* Primary — Phosphor Green */
+  --green:    #4edea3;
+  --green-a:  #10b981;
+  --green-hv: rgba(16,185,129,.5);
+  --green-on: #003824;
+  --green-bg: rgba(78,222,163,.07);
+  /* Secondary — Amber */
+  --amber:    #ffb95f;
+  --amber-a:  #ee9800;
+  --amber-bg: rgba(255,185,95,.07);
+  /* Tertiary — System Blue */
+  --blue:     #adc6ff;
+  --blue-bg:  rgba(173,198,255,.07);
+  /* Error */
+  --red:      #ffb4ab;
+  --red-fill: #c0392b;
+  --red-bg:   rgba(255,180,171,.07);
+  --red-brd:  rgba(147,0,10,.7);
+  /* Text */
+  --text:   #e5e2e1;
+  --text-v: #bbcabf;
+  /* Fonts */
+  --fh: 'Hanken Grotesk', system-ui, sans-serif;
+  --fm: 'JetBrains Mono', 'Courier New', monospace;
+}
+
 html, body {
   height: 100%;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
-  background: #0d1117;
-  color: #c9d1d9;
-  font-size: 14px;
+  font-family: var(--fm);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
   line-height: 1.6;
 }
 
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #0d1117; }
-::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+/* ── Scrollbars — 4px, no track ── */
+::-webkit-scrollbar       { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); }
+::-webkit-scrollbar-thumb:hover { background: var(--outline); }
+
+/* ── Metric color utilities ── */
+.color-ok     { color: var(--green); }
+.color-warn   { color: var(--amber); }
+.color-danger { color: var(--red); }
+
+.fill-ok     { background: var(--green-a); }
+.fill-warn   { background: var(--amber-a); }
+.fill-danger { background: var(--red-fill); }
+
+/* ── Severity text ── */
+.sev-critical { color: var(--red); }
+.sev-high     { color: var(--amber); }
+.sev-medium   { color: var(--blue); }
+.sev-low      { color: var(--text-v); }
