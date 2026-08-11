@@ -249,12 +249,12 @@
               <tr><th>Time</th><th>CPU %</th><th>RAM %</th><th>Disk %</th></tr>
             </thead>
             <tbody>
-              @for (row of historyTableData; track row.recordedAt) {
+              @for (row of historyTableData; track row.bucket) {
                 <tr>
-                  <td class="muted">{{ row.recordedAt | date:'HH:mm:ss' }}</td>
-                  <td [class]="'color-' + getAlertClass(row.cpuPercent)">{{ row.cpuPercent | number:'1.1-1' }}%</td>
-                  <td [class]="'color-' + getAlertClass(row.ramPercent)">{{ row.ramPercent | number:'1.1-1' }}%</td>
-                  <td [class]="'color-' + getAlertClass(row.diskPercent)">{{ row.diskPercent | number:'1.1-1' }}%</td>
+                  <td class="muted">{{ row.bucket | date:'HH:mm:ss' }}</td>
+                  <td [class]="'color-' + getAlertClass(row.avgcpu)">{{ row.avgcpu | number:'1.1-1' }}%</td>
+                  <td [class]="'color-' + getAlertClass(row.avgram)">{{ row.avgram | number:'1.1-1' }}%</td>
+                  <td [class]="'color-' + getAlertClass(row.avgdisk)">{{ row.avgdisk | number:'1.1-1' }}%</td>
                 </tr>
               }
             </tbody>
