@@ -16,4 +16,6 @@ public interface AlertRepository extends JpaRepository<Alert, Long> {
     List<Alert> findByMachineOrderByTriggeredAtDesc(Machine machine);
 
     List<Alert> findByMachineAndStatusOrderByTriggeredAtDesc(Machine machine, AlertStatus status);
+
+    List<Alert> findByAlertRuleAndStatus(AlertRule alertRule, AlertStatus status);
 }

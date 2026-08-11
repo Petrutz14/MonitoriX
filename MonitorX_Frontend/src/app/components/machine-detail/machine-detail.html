@@ -259,6 +259,13 @@
               }
             </tbody>
           </table>
+          @if (hasMoreHistory) {
+            <div class="history-load-more">
+              <button class="history-load-more-btn" (click)="loadMoreHistory()">
+                Show older ({{ historyData.length - historyPage * 50 }} more)
+              </button>
+            </div>
+          }
         </div>
       }
     </div>

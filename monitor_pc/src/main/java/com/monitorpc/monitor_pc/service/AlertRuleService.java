@@ -3,14 +3,19 @@ package com.monitorpc.monitor_pc.service;
 import com.monitorpc.monitor_pc.dto.AlertRuleRequestDTO;
 import com.monitorpc.monitor_pc.dto.AlertRuleResponseDTO;
 import com.monitorpc.monitor_pc.exception.ResourceNotFound;
+import com.monitorpc.monitor_pc.enums.AlertStatus;
 import com.monitorpc.monitor_pc.mapper.AlertMapper;
+import com.monitorpc.monitor_pc.model.Alert;
 import com.monitorpc.monitor_pc.model.AlertRule;
 import com.monitorpc.monitor_pc.model.Machine;
+import com.monitorpc.monitor_pc.repository.AlertRepository;
 import com.monitorpc.monitor_pc.repository.AlertRuleRepository;
 import com.monitorpc.monitor_pc.repository.MachineRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -18,8 +23,10 @@ import java.util.List;
 public class AlertRuleService {
 
     private final AlertRuleRepository alertRuleRepository;
+    private final AlertRepository alertRepository;
     private final MachineRepository machineRepository;
     private final AlertMapper alertMapper;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public AlertRuleResponseDTO createRule(AlertRuleRequestDTO request) {
         Machine machine = null;
@@ -65,6 +72,18 @@ public class AlertRuleService {
         AlertRule rule = alertRuleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFound("Alert rule not found: " + id));
         rule.setEnabled(enabled);
-        return alertMapper.toDTO(alertRuleRepository.save(rule));
+        alertRuleRepository.save(rule);
+
+        if (!enabled) {
+            List<Alert> ongoingAlerts = alertRepository.findByAlertRuleAndStatus(rule, AlertStatus.ONGOING);
+            for (Alert alert : ongoingAlerts) {
+                alert.setStatus(AlertStatus.RESOLVED);
+                alert.setResolvedAt(Instant.now());
+                alertRepository.save(alert);
+                messagingTemplate.convertAndSend("/topic/alerts", alertMapper.toDTO(alert));
+            }
+        }
+
+        return alertMapper.toDTO(rule);
     }
 }

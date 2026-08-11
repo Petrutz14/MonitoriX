@@ -43,6 +43,7 @@ export class MachineDetail implements OnInit, OnDestroy {
   historyLoading = false;
   historyError = false;
   historyView: 'graph' | 'table' = 'graph';
+  historyPage = 1;
 
   private wsSub?: Subscription;
   private alertSub?: Subscription;
@@ -69,7 +70,18 @@ export class MachineDetail implements OnInit, OnDestroy {
   }
 
   get historyTableData(): MetricBucketResponse[] {
-    return this.historyData.slice().reverse();
+    const total = this.historyData.length;
+    const start = Math.max(0, total - this.historyPage * 50);
+    return this.historyData.slice(start).reverse();
+  }
+
+  get hasMoreHistory(): boolean {
+    return this.historyData.length > this.historyPage * 50;
+  }
+
+  loadMoreHistory(): void {
+    this.historyPage++;
+    this.cdr.detectChanges();
   }
 
   ngOnInit(): void {
@@ -133,7 +145,8 @@ export class MachineDetail implements OnInit, OnDestroy {
     this.historyError = false;
     this.metricService.getMetricHistory(this.machineId, this.historyMinutes).subscribe({
       next: data => {
-        this.historyData = data.slice().reverse();
+        this.historyData = data;
+        this.historyPage = 1;
         this.historyLoading = false;
         this.cdr.detectChanges();
       },

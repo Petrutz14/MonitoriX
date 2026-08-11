@@ -617,10 +617,28 @@
 .history-tabs { display: flex; gap: 2px; }
 
 .history-table-wrap {
-  max-height: 280px;
+  max-height: 360px;
   overflow-y: auto;
   padding: 0 0.75rem 0.75rem;
 }
+
+.history-load-more {
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem 0 0.25rem;
+}
+
+.history-load-more-btn {
+  background: none;
+  border: 1px solid var(--border2);
+  color: var(--text-v);
+  font-family: var(--fm);
+  font-size: 11px;
+  padding: 4px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.history-load-more-btn:hover { border-color: var(--green-a); color: var(--green); }
 
 .history-tab {
   font-family: var(--fm);
