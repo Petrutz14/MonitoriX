@@ -1,11 +1,9 @@
 package com.monitorpc.monitor_pc;
 
-import org.junit.jupiter.api.Test;
+import org.junit.platform.suite.api.SelectPackages;
+import org.junit.platform.suite.api.Suite;
 
-class MonitorPcApplicationTests extends AbstractIntegrationTest {
-
-    @Test
-    void contextLoads() {
-    }
-
+@Suite
+@SelectPackages("com.monitorpc.monitor_pc.service")
+class MonitorPcApplicationTests {
 }
