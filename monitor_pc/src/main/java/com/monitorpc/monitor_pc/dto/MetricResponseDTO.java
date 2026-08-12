@@ -1,8 +1,10 @@
 package com.monitorpc.monitor_pc.dto;
 
 import com.monitorpc.monitor_pc.enums.MachineStatus;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.List;
@@ -10,6 +12,8 @@ import java.util.List;
 //DTO for Metrics->Frontend
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class MetricResponseDTO {
     private String machineId;
     private String displayName;
