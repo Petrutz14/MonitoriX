@@ -724,3 +724,22 @@
   .active-alerts-banner { margin: 0 1rem; }
   .identity-bar, .breadcrumb, .stale-notice { padding-left: 1rem; padding-right: 1rem; }
 }
+
+/* ── Simulate button ── */
+.simulate-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-v);
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.simulate-btn:hover:not(:disabled) {
+  background: var(--s1);
+  border-color: var(--green);
+  color: var(--green);
+}
+.simulate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.simulate-error { font-size: 11px; color: var(--red, #e05); }

@@ -48,6 +48,12 @@
         @if (metric) {
           <div class="live-badge"><span class="live-dot"></span>LIVE</div>
         }
+        <button class="simulate-btn" (click)="simulate()" [disabled]="simulating" title="Push a random metric payload">
+          {{ simulating ? '…' : '⚡ Simulate' }}
+        </button>
+        @if (simulateError) {
+          <span class="simulate-error">{{ simulateError }}</span>
+        }
       </div>
     </div>
 
