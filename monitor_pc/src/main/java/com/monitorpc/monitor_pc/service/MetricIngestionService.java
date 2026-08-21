@@ -46,6 +46,12 @@ public class MetricIngestionService {
 
         Machine machine = machineRepository
                 .findByMachineId(agentPayloadDTO.getMachineId())
+                .map(existing -> {
+                    if (!existing.getOwner().getUsername().equals(ownerUsername)) {
+                        throw new ResourceNotFound("Machine not found");
+                    }
+                    return existing;
+                })
                 .orElseGet(() -> {
                     Machine newMachine = Machine.builder()
                             .machineId(agentPayloadDTO.getMachineId())
