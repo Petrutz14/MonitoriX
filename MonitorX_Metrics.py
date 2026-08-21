@@ -140,8 +140,15 @@ while True:
         if r.status_code == 401:
             get_token()
             r = requests.post(API_URL, json=data, headers=auth_headers(), timeout=5)
-        print(f"Sent: CPU={data['cpuPercent']}% RAM={data['ramPercent']}% "
-              f"Disk={data['diskPercent']}% -> {r.status_code}")
+        if r.status_code == 404:
+            print(f"ERROR: Machine '{MACHINE_ID}' exists on the server but is owned by a different user. "
+                  f"Change AGENT_USERNAME or delete the machine from its current owner.")
+            break
+        if not r.ok:
+            print(f"Warning: unexpected response {r.status_code} — {r.text[:200]}")
+        else:
+            print(f"Sent: CPU={data['cpuPercent']}% RAM={data['ramPercent']}% "
+                  f"Disk={data['diskPercent']}% -> {r.status_code}")
     except Exception as e:
         print(f"Failed: {e}")
 
