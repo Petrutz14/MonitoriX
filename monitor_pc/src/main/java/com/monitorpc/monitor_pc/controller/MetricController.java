@@ -7,6 +7,8 @@ import com.monitorpc.monitor_pc.service.MetricIngestionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,27 +20,25 @@ import java.util.List;
 public class MetricController {
     private final MetricIngestionService metricIngestionService;
 
-    //Endpoint to enter metrics in system
     @PostMapping
-    public ResponseEntity<String> createMetric(@RequestBody AgentPayloadDTO agentPayloadDTO){
-        metricIngestionService.ingest(agentPayloadDTO);
+    public ResponseEntity<String> createMetric(@RequestBody AgentPayloadDTO agentPayloadDTO,
+                                               @AuthenticationPrincipal Jwt jwt) {
+        metricIngestionService.ingest(agentPayloadDTO, jwt.getSubject());
         return ResponseEntity.status(HttpStatus.CREATED).body("Metric received");
-
     }
 
-    //Get latest metric for specific machine
     @GetMapping("/{machineId}")
-    public ResponseEntity<MetricResponseDTO> getMetric(@PathVariable String machineId){
-        MetricResponseDTO metricResponseDTO = metricIngestionService.getSystemMetrics(machineId);
-        return ResponseEntity.status(HttpStatus.OK).body(metricResponseDTO);
-
+    public ResponseEntity<MetricResponseDTO> getMetric(@PathVariable String machineId,
+                                                       @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(metricIngestionService.getSystemMetrics(machineId, jwt.getSubject()));
     }
 
     @GetMapping("/{machineId}/history")
     public ResponseEntity<List<MetricBucketProjection>> getMetricHistory(
             @PathVariable String machineId,
-            @RequestParam(defaultValue = "30") Integer minutes) {
-        return ResponseEntity.ok(metricIngestionService.getHistory(machineId, minutes));
+            @RequestParam(defaultValue = "30") Integer minutes,
+            @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(metricIngestionService.getHistory(machineId, jwt.getSubject(), minutes));
     }
-
 }

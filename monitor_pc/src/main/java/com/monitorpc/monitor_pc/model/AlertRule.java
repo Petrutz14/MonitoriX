@@ -21,6 +21,10 @@ public class AlertRule {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "machine_id")
     private Machine machine;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    private User owner;
     @Enumerated(EnumType.STRING)
     private MetricType metricType;
     @Enumerated(EnumType.STRING)

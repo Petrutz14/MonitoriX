@@ -2,6 +2,7 @@ package com.monitorpc.monitor_pc.service;
 
 import com.monitorpc.monitor_pc.dto.AlertResponseDTO;
 import com.monitorpc.monitor_pc.enums.AlertStatus;
+import com.monitorpc.monitor_pc.exception.ResourceNotFound;
 import com.monitorpc.monitor_pc.mapper.AlertMapper;
 import com.monitorpc.monitor_pc.model.Alert;
 import com.monitorpc.monitor_pc.model.AlertRule;
@@ -9,6 +10,7 @@ import com.monitorpc.monitor_pc.model.Machine;
 import com.monitorpc.monitor_pc.model.SystemMetric;
 import com.monitorpc.monitor_pc.repository.AlertRepository;
 import com.monitorpc.monitor_pc.repository.AlertRuleRepository;
+import com.monitorpc.monitor_pc.repository.MachineRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -24,12 +26,14 @@ public class AlertEvaluationService {
 
     private final AlertRuleRepository alertRuleRepository;
     private final AlertRepository alertRepository;
+    private final MachineRepository machineRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final AlertMapper alertMapper;
 
     @Transactional
     public void evaluate(Machine machine, SystemMetric metric) {
-        List<AlertRule> rules = alertRuleRepository.findApplicableRules(machine);
+        if (machine.getOwner() == null) return;
+        List<AlertRule> rules = alertRuleRepository.findApplicableRules(machine, machine.getOwner());
 
         for (AlertRule rule : rules) {
             double value = extractValue(metric, rule);
@@ -58,7 +62,9 @@ public class AlertEvaluationService {
     }
 
     @Transactional
-    public List<AlertResponseDTO> getAlertsForMachine(String machineId, Machine machine) {
+    public List<AlertResponseDTO> getAlertsForMachine(String machineId, String username) {
+        Machine machine = machineRepository.findByMachineIdAndOwnerUsername(machineId, username)
+                .orElseThrow(() -> new ResourceNotFound("Machine not found: " + machineId));
         return alertRepository.findByMachineOrderByTriggeredAtDesc(machine)
                 .stream()
                 .map(alertMapper::toDTO)
@@ -66,7 +72,9 @@ public class AlertEvaluationService {
     }
 
     @Transactional
-    public List<AlertResponseDTO> getActiveAlertsForMachine(Machine machine) {
+    public List<AlertResponseDTO> getActiveAlertsForMachine(String machineId, String username) {
+        Machine machine = machineRepository.findByMachineIdAndOwnerUsername(machineId, username)
+                .orElseThrow(() -> new ResourceNotFound("Machine not found: " + machineId));
         return alertRepository.findByMachineAndStatusOrderByTriggeredAtDesc(machine, AlertStatus.ONGOING)
                 .stream()
                 .map(alertMapper::toDTO)

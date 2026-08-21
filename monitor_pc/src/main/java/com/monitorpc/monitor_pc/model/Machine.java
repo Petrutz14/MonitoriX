@@ -29,7 +29,9 @@ public class Machine {
     @Builder.Default
     private Instant createdAt=Instant.now();
 
-
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    private User owner;
 
 
 

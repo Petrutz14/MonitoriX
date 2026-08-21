@@ -3,14 +3,13 @@ package com.monitorpc.monitor_pc.controller;
 import com.monitorpc.monitor_pc.dto.AlertResponseDTO;
 import com.monitorpc.monitor_pc.dto.AlertRuleRequestDTO;
 import com.monitorpc.monitor_pc.dto.AlertRuleResponseDTO;
-import com.monitorpc.monitor_pc.exception.ResourceNotFound;
-import com.monitorpc.monitor_pc.model.Machine;
-import com.monitorpc.monitor_pc.repository.MachineRepository;
 import com.monitorpc.monitor_pc.service.AlertEvaluationService;
 import com.monitorpc.monitor_pc.service.AlertRuleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,50 +22,51 @@ public class AlertController {
 
     private final AlertRuleService alertRuleService;
     private final AlertEvaluationService alertEvaluationService;
-    private final MachineRepository machineRepository;
 
     @PostMapping("/alert-rules")
-    public ResponseEntity<AlertRuleResponseDTO> createRule(@RequestBody AlertRuleRequestDTO request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(alertRuleService.createRule(request));
+    public ResponseEntity<AlertRuleResponseDTO> createRule(@RequestBody AlertRuleRequestDTO request,
+                                                           @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(alertRuleService.createRule(request, jwt.getSubject()));
     }
 
     @GetMapping("/alert-rules")
-    public ResponseEntity<List<AlertRuleResponseDTO>> getAllRules() {
-        return ResponseEntity.ok(alertRuleService.getAllRules());
+    public ResponseEntity<List<AlertRuleResponseDTO>> getAllRules(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(alertRuleService.getAllRules(jwt.getSubject()));
     }
 
     @GetMapping("/alert-rules/global")
-    public ResponseEntity<List<AlertRuleResponseDTO>> getGlobalRules() {
-        return ResponseEntity.ok(alertRuleService.getGlobalRules());
+    public ResponseEntity<List<AlertRuleResponseDTO>> getGlobalRules(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(alertRuleService.getGlobalRules(jwt.getSubject()));
     }
 
     @GetMapping("/alert-rules/{machineId}")
-    public ResponseEntity<List<AlertRuleResponseDTO>> getRulesForMachine(@PathVariable String machineId) {
-        return ResponseEntity.ok(alertRuleService.getRulesForMachine(machineId));
+    public ResponseEntity<List<AlertRuleResponseDTO>> getRulesForMachine(@PathVariable String machineId,
+                                                                          @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(alertRuleService.getRulesForMachine(machineId, jwt.getSubject()));
     }
 
     @PatchMapping("/alert-rules/{id}/toggle")
-    public ResponseEntity<AlertRuleResponseDTO> toggleRule(@PathVariable Long id, @RequestParam Boolean enabled) {
-        return ResponseEntity.ok(alertRuleService.toggleRule(id, enabled));
+    public ResponseEntity<AlertRuleResponseDTO> toggleRule(@PathVariable Long id,
+                                                           @RequestParam Boolean enabled,
+                                                           @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(alertRuleService.toggleRule(id, enabled, jwt.getSubject()));
     }
 
     @DeleteMapping("/alert-rules/{id}")
-    public ResponseEntity<Void> deleteRule(@PathVariable Long id) {
-        alertRuleService.deleteRule(id);
+    public ResponseEntity<Void> deleteRule(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        alertRuleService.deleteRule(id, jwt.getSubject());
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/alerts/{machineId}")
-    public ResponseEntity<List<AlertResponseDTO>> getAlerts(@PathVariable String machineId) {
-        Machine machine = machineRepository.findByMachineId(machineId)
-                .orElseThrow(() -> new ResourceNotFound("Machine not found: " + machineId));
-        return ResponseEntity.ok(alertEvaluationService.getAlertsForMachine(machineId, machine));
+    public ResponseEntity<List<AlertResponseDTO>> getAlerts(@PathVariable String machineId,
+                                                            @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(alertEvaluationService.getAlertsForMachine(machineId, jwt.getSubject()));
     }
 
     @GetMapping("/alerts/{machineId}/active")
-    public ResponseEntity<List<AlertResponseDTO>> getActiveAlerts(@PathVariable String machineId) {
-        Machine machine = machineRepository.findByMachineId(machineId)
-                .orElseThrow(() -> new ResourceNotFound("Machine not found: " + machineId));
-        return ResponseEntity.ok(alertEvaluationService.getActiveAlertsForMachine(machine));
+    public ResponseEntity<List<AlertResponseDTO>> getActiveAlerts(@PathVariable String machineId,
+                                                                   @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(alertEvaluationService.getActiveAlertsForMachine(machineId, jwt.getSubject()));
     }
 }

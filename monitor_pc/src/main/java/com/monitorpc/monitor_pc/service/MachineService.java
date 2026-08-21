@@ -18,21 +18,21 @@ public class MachineService {
     private final MachineRepository machineRepository;
     private final MachineMapper machineMapper;
 
-    public List<MachineResponseDTO> getAllMachines(){
-        return machineRepository.findAll().stream().map(machineMapper::toDTO).toList();
+    public List<MachineResponseDTO> getAllMachines(String username) {
+        return machineRepository.findByOwnerUsername(username).stream().map(machineMapper::toDTO).toList();
     }
 
-    public MachineResponseDTO getMachine(String machineId){
+    public MachineResponseDTO getMachine(String machineId, String username) {
         Machine machine = machineRepository
-                .findByMachineId(machineId)
+                .findByMachineIdAndOwnerUsername(machineId, username)
                 .orElseThrow(() -> new ResourceNotFound("Machine not found"));
         return machineMapper.toDTO(machine);
     }
 
     @Transactional
-    public MachineResponseDTO updateDisplayName(String machineId, MachineUpdateDTO machineUpdateDTO){
+    public MachineResponseDTO updateDisplayName(String machineId, String username, MachineUpdateDTO machineUpdateDTO) {
         Machine machine = machineRepository
-                .findByMachineId(machineId)
+                .findByMachineIdAndOwnerUsername(machineId, username)
                 .orElseThrow(() -> new ResourceNotFound("Machine not found"));
         machine.setDisplayName(machineUpdateDTO.getDisplayName());
         return machineMapper.toDTO(machine);
