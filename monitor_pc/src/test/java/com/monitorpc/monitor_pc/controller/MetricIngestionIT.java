@@ -5,7 +5,7 @@ import com.monitorpc.monitor_pc.repository.MachineRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.mockmvc.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.HttpStatus;
@@ -54,7 +54,7 @@ class MetricIngestionIT {
                 .content("""
                     {"username":"%s","password":"it-pass-123"}
                     """.formatted(AGENT_USERNAME))
-        ).hasStatusOk().doesNotHaveStatus4xxClientError();
+        ).hasStatusOk();
 
         // POST metrics using a mock JWT with ROLE_AGENT (matching SecurityConfig authority mapping)
         assertThat(
@@ -82,7 +82,7 @@ class MetricIngestionIT {
         // Assert machine was upserted and marked ONLINE
         var machine = machineRepository.findByMachineId(MACHINE_ID);
         assertThat(machine).isPresent();
-        assertThat(machine.get().getMachineStatus()).isEqualTo(MachineStatus.ONLINE);
+        assertThat(machine.get().getStatus()).isEqualTo(MachineStatus.ONLINE);
     }
 
     @Test

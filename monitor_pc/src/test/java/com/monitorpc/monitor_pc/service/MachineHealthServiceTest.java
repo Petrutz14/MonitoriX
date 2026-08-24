@@ -28,7 +28,7 @@ class MachineHealthServiceTest {
         Machine machine = Machine.builder()
                 .machineId("stale-host")
                 .status(MachineStatus.ONLINE)
-                .lastSeen(Instant.now().minusSeconds(60))
+                .lastSeen(Instant.now().minusSeconds(120))
                 .build();
         when(machineRepository.findAll()).thenReturn(List.of(machine));
 

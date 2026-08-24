@@ -30,6 +30,8 @@ class MachineServiceTest {
 
     @InjectMocks MachineService service;
 
+    private static final String USER = "test-user";
+
     private Machine buildMachine(String machineId) {
         return Machine.builder()
                 .machineId(machineId).displayName(machineId)
@@ -43,11 +45,11 @@ class MachineServiceTest {
         MachineResponseDTO dto1 = mock(MachineResponseDTO.class);
         MachineResponseDTO dto2 = mock(MachineResponseDTO.class);
 
-        when(machineRepository.findAll()).thenReturn(List.of(m1, m2));
+        when(machineRepository.findByOwnerUsername(USER)).thenReturn(List.of(m1, m2));
         when(machineMapper.toDTO(m1)).thenReturn(dto1);
         when(machineMapper.toDTO(m2)).thenReturn(dto2);
 
-        List<MachineResponseDTO> result = service.getAllMachines();
+        List<MachineResponseDTO> result = service.getAllMachines(USER);
 
         assertThat(result).containsExactly(dto1, dto2);
     }
@@ -57,16 +59,16 @@ class MachineServiceTest {
         Machine machine = buildMachine("host-1");
         MachineResponseDTO dto = mock(MachineResponseDTO.class);
 
-        when(machineRepository.findByMachineId("host-1")).thenReturn(Optional.of(machine));
+        when(machineRepository.findByMachineIdAndOwnerUsername("host-1", USER)).thenReturn(Optional.of(machine));
         when(machineMapper.toDTO(machine)).thenReturn(dto);
 
-        assertThat(service.getMachine("host-1")).isEqualTo(dto);
+        assertThat(service.getMachine("host-1", USER)).isEqualTo(dto);
     }
 
     @Test
     void getMachine_notFound_throws() {
-        when(machineRepository.findByMachineId("ghost")).thenReturn(Optional.empty());
-        assertThrows(ResourceNotFound.class, () -> service.getMachine("ghost"));
+        when(machineRepository.findByMachineIdAndOwnerUsername("ghost", USER)).thenReturn(Optional.empty());
+        assertThrows(ResourceNotFound.class, () -> service.getMachine("ghost", USER));
     }
 
     @Test
@@ -76,10 +78,10 @@ class MachineServiceTest {
         MachineUpdateDTO update = new MachineUpdateDTO();
         update.setDisplayName("New Name");
 
-        when(machineRepository.findByMachineId("host-1")).thenReturn(Optional.of(machine));
+        when(machineRepository.findByMachineIdAndOwnerUsername("host-1", USER)).thenReturn(Optional.of(machine));
         when(machineMapper.toDTO(machine)).thenReturn(dto);
 
-        MachineResponseDTO result = service.updateDisplayName("host-1", update);
+        MachineResponseDTO result = service.updateDisplayName("host-1", USER, update);
 
         assertThat(machine.getDisplayName()).isEqualTo("New Name");
         assertThat(result).isEqualTo(dto);
@@ -87,8 +89,8 @@ class MachineServiceTest {
 
     @Test
     void updateDisplayName_notFound_throws() {
-        when(machineRepository.findByMachineId("ghost")).thenReturn(Optional.empty());
+        when(machineRepository.findByMachineIdAndOwnerUsername("ghost", USER)).thenReturn(Optional.empty());
         assertThrows(ResourceNotFound.class, () ->
-                service.updateDisplayName("ghost", new MachineUpdateDTO()));
+                service.updateDisplayName("ghost", USER, new MachineUpdateDTO()));
     }
 }

@@ -6,6 +6,7 @@ import com.monitorpc.monitor_pc.enums.MachineStatus;
 import com.monitorpc.monitor_pc.mapper.MetricMapper;
 import com.monitorpc.monitor_pc.model.Machine;
 import com.monitorpc.monitor_pc.model.SystemMetric;
+import com.monitorpc.monitor_pc.model.User;
 import com.monitorpc.monitor_pc.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,13 +35,18 @@ class MetricIngestionServiceTest {
     @Mock DiskPartitionRepository diskPartitionRepository;
     @Mock AlertEvaluationService alertEvaluationService;
     @Mock MetricMapper metricMapper;
+    @Mock UserRepository userRepository;
 
     @InjectMocks MetricIngestionService service;
 
+    private static final String AGENT = "test-agent";
+    private User agentUser;
     private AgentPayloadDTO payload;
 
     @BeforeEach
     void setUp() {
+        agentUser = User.builder().username(AGENT).role("ROLE_AGENT").build();
+
         payload = new AgentPayloadDTO();
         payload.setMachineId("test-host");
         payload.setCpuPercent(45.0);
@@ -57,12 +64,13 @@ class MetricIngestionServiceTest {
 
     @Test
     void ingest_newMachine_createsAndSavesAll() {
+        when(userRepository.findByUsername(AGENT)).thenReturn(Optional.of(agentUser));
         when(machineRepository.findByMachineId("test-host")).thenReturn(Optional.empty());
         when(machineRepository.save(any(Machine.class))).thenAnswer(i -> i.getArgument(0));
         when(systemMetricRepository.save(any(SystemMetric.class))).thenAnswer(i -> i.getArgument(0));
         when(metricMapper.toDTO(any(), any(), any(), any())).thenReturn(mock(MetricResponseDTO.class));
 
-        service.ingest(payload);
+        service.ingest(payload, AGENT);
 
         verify(machineRepository, times(2)).save(any(Machine.class));
         verify(systemMetricRepository).save(any(SystemMetric.class));
@@ -76,14 +84,16 @@ class MetricIngestionServiceTest {
                 .machineId("test-host")
                 .status(MachineStatus.OFFLINE)
                 .lastSeen(Instant.now().minusSeconds(120))
+                .owner(agentUser)
                 .build();
 
+        when(userRepository.findByUsername(AGENT)).thenReturn(Optional.of(agentUser));
         when(machineRepository.findByMachineId("test-host")).thenReturn(Optional.of(existing));
         when(machineRepository.save(any(Machine.class))).thenAnswer(i -> i.getArgument(0));
         when(systemMetricRepository.save(any(SystemMetric.class))).thenAnswer(i -> i.getArgument(0));
         when(metricMapper.toDTO(any(), any(), any(), any())).thenReturn(mock(MetricResponseDTO.class));
 
-        service.ingest(payload);
+        service.ingest(payload, AGENT);
 
         assertThat(existing.getStatus()).isEqualTo(MachineStatus.ONLINE);
         assertThat(existing.getLastSeen()).isNotNull();
@@ -96,12 +106,13 @@ class MetricIngestionServiceTest {
         payload.setTopProcesses(null);
         payload.setDiskPartitions(null);
 
+        when(userRepository.findByUsername(AGENT)).thenReturn(Optional.of(agentUser));
         when(machineRepository.findByMachineId("test-host")).thenReturn(Optional.empty());
         when(machineRepository.save(any(Machine.class))).thenAnswer(i -> i.getArgument(0));
         when(systemMetricRepository.save(any(SystemMetric.class))).thenAnswer(i -> i.getArgument(0));
         when(metricMapper.toDTO(any(), any(), any(), any())).thenReturn(mock(MetricResponseDTO.class));
 
-        service.ingest(payload);
+        service.ingest(payload, AGENT);
 
         verify(topProcessRepository, never()).save(any());
         verify(diskPartitionRepository, never()).save(any());
@@ -109,13 +120,14 @@ class MetricIngestionServiceTest {
 
     @Test
     void ingest_broadcastsToWebSocket() {
+        when(userRepository.findByUsername(AGENT)).thenReturn(Optional.of(agentUser));
         when(machineRepository.findByMachineId("test-host")).thenReturn(Optional.empty());
         when(machineRepository.save(any(Machine.class))).thenAnswer(i -> i.getArgument(0));
         when(systemMetricRepository.save(any(SystemMetric.class))).thenAnswer(i -> i.getArgument(0));
         MetricResponseDTO dto = mock(MetricResponseDTO.class);
         when(metricMapper.toDTO(any(), any(), any(), any())).thenReturn(dto);
 
-        service.ingest(payload);
+        service.ingest(payload, AGENT);
 
         verify(simpMessagingTemplate).convertAndSend("/topic/metrics", dto);
     }
