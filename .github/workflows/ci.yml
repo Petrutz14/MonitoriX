@@ -44,7 +44,7 @@ jobs:
           cache-dependency-path: MonitorX_Frontend/package-lock.json
 
       - name: Install dependencies
-        run: cd MonitorX_Frontend && npm ci
+        run: cd MonitorX_Frontend && npm install --prefer-offline
 
       - name: Build
         run: cd MonitorX_Frontend && npx ng build --configuration production
