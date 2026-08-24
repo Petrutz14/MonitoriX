@@ -163,8 +163,9 @@ public class MetricIngestionService {
 
         Random rng = new Random();
 
-        Machine machine = machineRepository.findByMachineIdAndOwnerUsername(machineId, owner.getUsername())
-                .orElseGet(() -> machineRepository.save(Machine.builder()
+        Machine machine = machineRepository.findByMachineId(machineId)
+                .map(existing -> { existing.setOwner(owner); return existing; })
+                .orElseGet(() -> Machine.builder()
                         .machineId(machineId)
                         .displayName("Demo Machine")
                         .status(MachineStatus.ONLINE)
@@ -173,7 +174,7 @@ public class MetricIngestionService {
                         .ipAddress("127.0.0.1")
                         .totalRamGb(16.0)
                         .owner(owner)
-                        .build()));
+                        .build());
 
         machine.setStatus(MachineStatus.ONLINE);
         machine.setLastSeen(Instant.now());
