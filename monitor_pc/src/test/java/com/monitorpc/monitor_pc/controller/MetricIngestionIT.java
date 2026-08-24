@@ -54,7 +54,7 @@ class MetricIngestionIT {
                 .content("""
                     {"username":"%s","password":"it-pass-123"}
                     """.formatted(AGENT_USERNAME))
-        ).hasStatusOk();
+        ).hasStatus(HttpStatus.CREATED);
 
         // POST metrics using a mock JWT with ROLE_AGENT (matching SecurityConfig authority mapping)
         assertThat(
