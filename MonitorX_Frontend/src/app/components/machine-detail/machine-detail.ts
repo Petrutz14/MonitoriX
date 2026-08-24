@@ -297,7 +297,7 @@ export class MachineDetail implements OnInit, OnDestroy {
   }
 
   isStale(status: string): boolean {
-    return status === 'OFFLINE' || status === 'IDLE';
+    return status === 'OFFLINE';
   }
 
   getAlertClass(value: number): string {

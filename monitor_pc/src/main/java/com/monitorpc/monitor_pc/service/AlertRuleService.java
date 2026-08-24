@@ -16,6 +16,7 @@ import com.monitorpc.monitor_pc.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
@@ -54,26 +55,31 @@ public class AlertRuleService {
         return alertMapper.toDTO(alertRuleRepository.save(rule));
     }
 
+    @Transactional(readOnly = true)
     public List<AlertRuleResponseDTO> getAllRules(String username) {
         return alertRuleRepository.findByOwnerUsername(username).stream().map(alertMapper::toDTO).toList();
     }
 
+    @Transactional(readOnly = true)
     public List<AlertRuleResponseDTO> getGlobalRules(String username) {
         return alertRuleRepository.findByMachineIsNullAndOwnerUsername(username).stream().map(alertMapper::toDTO).toList();
     }
 
+    @Transactional(readOnly = true)
     public List<AlertRuleResponseDTO> getRulesForMachine(String machineId, String username) {
         Machine machine = machineRepository.findByMachineIdAndOwnerUsername(machineId, username)
                 .orElseThrow(() -> new ResourceNotFound("Machine not found: " + machineId));
         return alertRuleRepository.findByMachineAndOwnerUsername(machine, username).stream().map(alertMapper::toDTO).toList();
     }
 
+    @Transactional
     public void deleteRule(Long id, String username) {
         AlertRule rule = alertRuleRepository.findByIdAndOwnerUsername(id, username)
                 .orElseThrow(() -> new ResourceNotFound("Alert rule not found: " + id));
         alertRuleRepository.delete(rule);
     }
 
+    @Transactional
     public AlertRuleResponseDTO toggleRule(Long id, Boolean enabled, String username) {
         AlertRule rule = alertRuleRepository.findByIdAndOwnerUsername(id, username)
                 .orElseThrow(() -> new ResourceNotFound("Alert rule not found: " + id));

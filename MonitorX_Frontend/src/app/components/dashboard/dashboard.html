@@ -25,7 +25,6 @@
 @if (allActiveAlerts.length > 0) {
   <div class="alerts-section">
     <div class="alerts-section-header">
-      <span class="alerts-section-icon">⚑</span>
       <span class="alerts-section-title">Active Alerts</span>
       <span class="alerts-section-count">{{ allActiveAlerts.length }}</span>
     </div>
@@ -48,7 +47,7 @@
 @if (loading) {
   <div class="loading-state">
     <span class="loading-spinner"></span>
-    <span class="loading-text">Fetching machines…</span>
+    <span class="loading-text">Loading</span>
   </div>
 } @else if (machines.length === 0) {
   <div class="empty-state">No machines registered.</div>
@@ -70,7 +69,7 @@
           </div>
           <div class="card-header-right">
             @if (alertCount > 0) {
-              <div class="alert-badge">⚑ {{ alertCount }}</div>
+              <div class="alert-badge">{{ alertCount }}</div>
             }
             <div class="status-chip" [class]="'status-chip--' + machine.machineStatus.toLowerCase()">
               <span class="status-dot"></span>{{ machine.machineStatus }}
@@ -81,7 +80,6 @@
         <!-- Stale banner -->
         @if (isStale(machine.machineStatus)) {
           <div class="stale-banner">
-            <span class="stale-icon">⏱</span>
             Last online {{ formatTimeAgo(machine.lastSeen) }}
           </div>
         }

@@ -42,13 +42,15 @@ public class MetricIngestionService {
 
     @Transactional
     public void ingest(AgentPayloadDTO agentPayloadDTO, String ownerUsername) {
-        User owner = userRepository.findByUsername(ownerUsername)
+        User agentUser = userRepository.findByUsername(ownerUsername)
                 .orElseThrow(() -> new ResourceNotFound("User not found: " + ownerUsername));
+        User owner = agentUser.getLinkedOwner() != null ? agentUser.getLinkedOwner() : agentUser;
+        String effectiveOwnerUsername = owner.getUsername();
 
         Machine machine = machineRepository
                 .findByMachineId(agentPayloadDTO.getMachineId())
                 .map(existing -> {
-                    if (!existing.getOwner().getUsername().equals(ownerUsername)) {
+                    if (!existing.getOwner().getUsername().equals(effectiveOwnerUsername)) {
                         throw new ResourceNotFound("Machine not found");
                     }
                     return existing;
@@ -153,6 +155,7 @@ public class MetricIngestionService {
         return 3600;
     }
 
+    @Transactional
     public void simulateIngest(String machineId, String ownerUsername) {
         Random rng = new Random();
         AgentPayloadDTO dto = new AgentPayloadDTO();

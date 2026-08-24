@@ -96,7 +96,7 @@ public class AlertEvaluationService {
             case HIGHER_OR_EQUAL -> value >= threshold;
             case LOWER -> value < threshold;
             case LOWER_OR_EQUAL -> value <= threshold;
-            case EQUAL -> value == threshold;
+            case EQUAL -> Math.abs(value - threshold) < 0.5;
         };
     }
 }

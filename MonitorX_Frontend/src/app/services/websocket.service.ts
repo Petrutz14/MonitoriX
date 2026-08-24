@@ -3,6 +3,8 @@ import { Client } from '@stomp/stompjs';
 import { Subject } from 'rxjs';
 import { MetricResponse } from '../models/metric-response.model';
 import { AlertResponse } from '../models/alert.model';
+import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class WebSocketService {
@@ -14,9 +16,9 @@ export class WebSocketService {
   metric$ = this.metricSubject.asObservable();
   alert$ = this.alertSubject.asObservable();
 
-  constructor() {
+  constructor(private authService: AuthService) {
     this.client = new Client({
-      brokerURL: 'ws://localhost:8080/ws',
+      brokerURL: environment.wsUrl,
       onConnect: () => {
         this.client.subscribe('/topic/metrics', message => {
           this.metricSubject.next(JSON.parse(message.body));
@@ -32,7 +34,11 @@ export class WebSocketService {
 
   connect(): void {
     this.refCount++;
-    if (this.refCount === 1) this.client.activate();
+    if (this.refCount === 1) {
+      const token = this.authService.getToken();
+      if (token) this.client.connectHeaders = { Authorization: `Bearer ${token}` };
+      this.client.activate();
+    }
   }
 
   disconnect(): void {
