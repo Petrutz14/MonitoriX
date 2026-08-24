@@ -16,6 +16,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 
@@ -76,7 +78,8 @@ class MetricIngestionIT {
                       "diskPartitions": []
                     }
                     """.formatted(MACHINE_ID))
-                .with(jwt().jwt(j -> j.subject(AGENT_USERNAME).claim("role", "ROLE_AGENT")))
+                .with(jwt().jwt(j -> j.subject(AGENT_USERNAME).claim("role", "ROLE_AGENT"))
+                           .authorities(new SimpleGrantedAuthority("ROLE_AGENT")))
         ).hasStatus(HttpStatus.CREATED);
 
         // Assert machine was upserted and marked ONLINE
