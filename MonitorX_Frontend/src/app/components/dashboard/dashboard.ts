@@ -11,6 +11,8 @@ import { MetricResponse } from '../../models/metric-response.model';
 import { MachineResponse } from '../../models/machine-response.model';
 import { AlertResponse } from '../../models/alert.model';
 
+const DEMO_MACHINE_ID = 'demo-showcase';
+
 @Component({
   selector: 'app-dashboard',
   imports: [DatePipe, DecimalPipe, RouterLink],
@@ -24,9 +26,13 @@ export class Dashboard implements OnInit, OnDestroy {
   toasts: { id: number; alert: AlertResponse }[] = [];
   loading = true;
 
+  demoActive = false;
+  demoMachineId = DEMO_MACHINE_ID;
+
   private toastCounter = 0;
   private wsSub?: Subscription;
   private alertSub?: Subscription;
+  private demoInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     private metricService: MetricService,
@@ -68,13 +74,12 @@ export class Dashboard implements OnInit, OnDestroy {
 
     this.webSocketService.connect();
 
-    // Update metrics AND machine status live
     this.wsSub = this.webSocketService.metric$.subscribe(data => {
       this.metrics.set(data.machineId, data);
       const machine = this.machines.find(m => m.machineId === data.machineId);
       if (machine && machine.machineStatus !== data.machineStatus) {
         machine.machineStatus = data.machineStatus;
-        this.machines = [...this.machines]; // trigger trackBy refresh
+        this.machines = [...this.machines];
       }
       this.cdr.detectChanges();
     });
@@ -94,6 +99,39 @@ export class Dashboard implements OnInit, OnDestroy {
       }
       this.cdr.detectChanges();
     });
+  }
+
+  launchDemo(): void {
+    this.demoActive = true;
+    this.cdr.detectChanges();
+    this.metricService.simulateMetric(DEMO_MACHINE_ID).subscribe({
+      next: () => {
+        this.machineService.getMachines().subscribe({
+          next: machines => {
+            this.machines = machines;
+            machines.forEach(m => {
+              this.metricService.getLatestMetric(m.machineId).subscribe({
+                next: data => { this.metrics.set(m.machineId, data); this.cdr.detectChanges(); },
+                error: () => {}
+              });
+            });
+            this.cdr.detectChanges();
+          }
+        });
+      }
+    });
+    this.demoInterval = setInterval(() => {
+      this.metricService.simulateMetric(DEMO_MACHINE_ID).subscribe();
+    }, 15000);
+  }
+
+  stopDemo(): void {
+    if (this.demoInterval) {
+      clearInterval(this.demoInterval);
+      this.demoInterval = null;
+    }
+    this.demoActive = false;
+    this.cdr.detectChanges();
   }
 
   private showToast(alert: AlertResponse): void {
@@ -188,11 +226,13 @@ export class Dashboard implements OnInit, OnDestroy {
   }
 
   logout(): void {
+    this.stopDemo();
     this.authService.logout();
     this.router.navigate(['/login']);
   }
 
   ngOnDestroy(): void {
+    this.stopDemo();
     this.wsSub?.unsubscribe();
     this.alertSub?.unsubscribe();
     this.webSocketService.disconnect();

@@ -9,6 +9,7 @@ import com.monitorpc.monitor_pc.model.AlertRule;
 import com.monitorpc.monitor_pc.repository.AlertRepository;
 import com.monitorpc.monitor_pc.repository.AlertRuleRepository;
 import com.monitorpc.monitor_pc.repository.MachineRepository;
+import com.monitorpc.monitor_pc.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -30,24 +31,27 @@ class AlertRuleServiceTest {
     @Mock AlertRuleRepository alertRuleRepository;
     @Mock AlertRepository alertRepository;
     @Mock MachineRepository machineRepository;
+    @Mock UserRepository userRepository;
     @Mock AlertMapper alertMapper;
     @Mock SimpMessagingTemplate messagingTemplate;
 
     @InjectMocks AlertRuleService service;
+
+    private static final String USER = "test-user";
 
     @Test
     void toggleRule_disable_resolvesOngoingAlerts() {
         AlertRule rule = AlertRule.builder().enabled(true).build();
         Alert ongoing = Alert.builder().status(AlertStatus.ONGOING).build();
 
-        when(alertRuleRepository.findById(1L)).thenReturn(Optional.of(rule));
+        when(alertRuleRepository.findByIdAndOwnerUsername(1L, USER)).thenReturn(Optional.of(rule));
         when(alertRuleRepository.save(rule)).thenReturn(rule);
         when(alertRepository.findByAlertRuleAndStatus(rule, AlertStatus.ONGOING))
                 .thenReturn(List.of(ongoing));
         when(alertMapper.toDTO(rule)).thenReturn(mock(AlertRuleResponseDTO.class));
         when(alertMapper.toDTO(ongoing)).thenReturn(mock(com.monitorpc.monitor_pc.dto.AlertResponseDTO.class));
 
-        service.toggleRule(1L, false);
+        service.toggleRule(1L, false, USER);
 
         assertThat(rule.getEnabled()).isFalse();
         assertThat(ongoing.getStatus()).isEqualTo(AlertStatus.RESOLVED);
@@ -60,11 +64,11 @@ class AlertRuleServiceTest {
     void toggleRule_enable_doesNotTouchAlerts() {
         AlertRule rule = AlertRule.builder().enabled(false).build();
 
-        when(alertRuleRepository.findById(1L)).thenReturn(Optional.of(rule));
+        when(alertRuleRepository.findByIdAndOwnerUsername(1L, USER)).thenReturn(Optional.of(rule));
         when(alertRuleRepository.save(rule)).thenReturn(rule);
         when(alertMapper.toDTO(rule)).thenReturn(mock(AlertRuleResponseDTO.class));
 
-        service.toggleRule(1L, true);
+        service.toggleRule(1L, true, USER);
 
         assertThat(rule.getEnabled()).isTrue();
         verify(alertRepository, never()).findByAlertRuleAndStatus(any(), any());
@@ -77,14 +81,14 @@ class AlertRuleServiceTest {
         Alert a1 = Alert.builder().status(AlertStatus.ONGOING).build();
         Alert a2 = Alert.builder().status(AlertStatus.ONGOING).build();
 
-        when(alertRuleRepository.findById(2L)).thenReturn(Optional.of(rule));
+        when(alertRuleRepository.findByIdAndOwnerUsername(2L, USER)).thenReturn(Optional.of(rule));
         when(alertRuleRepository.save(rule)).thenReturn(rule);
         when(alertRepository.findByAlertRuleAndStatus(rule, AlertStatus.ONGOING))
                 .thenReturn(List.of(a1, a2));
         when(alertMapper.toDTO(rule)).thenReturn(mock(AlertRuleResponseDTO.class));
         when(alertMapper.toDTO(any(Alert.class))).thenReturn(mock(com.monitorpc.monitor_pc.dto.AlertResponseDTO.class));
 
-        service.toggleRule(2L, false);
+        service.toggleRule(2L, false, USER);
 
         assertThat(a1.getStatus()).isEqualTo(AlertStatus.RESOLVED);
         assertThat(a2.getStatus()).isEqualTo(AlertStatus.RESOLVED);
@@ -96,13 +100,13 @@ class AlertRuleServiceTest {
     void toggleRule_disable_noOngoing_noAlertOps() {
         AlertRule rule = AlertRule.builder().enabled(true).build();
 
-        when(alertRuleRepository.findById(3L)).thenReturn(Optional.of(rule));
+        when(alertRuleRepository.findByIdAndOwnerUsername(3L, USER)).thenReturn(Optional.of(rule));
         when(alertRuleRepository.save(rule)).thenReturn(rule);
         when(alertRepository.findByAlertRuleAndStatus(rule, AlertStatus.ONGOING))
                 .thenReturn(List.of());
         when(alertMapper.toDTO(rule)).thenReturn(mock(AlertRuleResponseDTO.class));
 
-        service.toggleRule(3L, false);
+        service.toggleRule(3L, false, USER);
 
         verify(alertRepository, never()).save(any(Alert.class));
         verify(messagingTemplate, never()).convertAndSend(anyString(), any(Object.class));
@@ -110,7 +114,7 @@ class AlertRuleServiceTest {
 
     @Test
     void toggleRule_notFound_throws() {
-        when(alertRuleRepository.findById(99L)).thenReturn(Optional.empty());
-        assertThrows(ResourceNotFound.class, () -> service.toggleRule(99L, false));
+        when(alertRuleRepository.findByIdAndOwnerUsername(99L, USER)).thenReturn(Optional.empty());
+        assertThrows(ResourceNotFound.class, () -> service.toggleRule(99L, false, USER));
     }
 }

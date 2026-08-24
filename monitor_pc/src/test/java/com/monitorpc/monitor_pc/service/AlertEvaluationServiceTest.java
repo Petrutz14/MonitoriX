@@ -2,6 +2,7 @@ package com.monitorpc.monitor_pc.service;
 
 import com.monitorpc.monitor_pc.dto.AlertResponseDTO;
 import com.monitorpc.monitor_pc.enums.*;
+import com.monitorpc.monitor_pc.model.User;
 import com.monitorpc.monitor_pc.mapper.AlertMapper;
 import com.monitorpc.monitor_pc.model.*;
 import com.monitorpc.monitor_pc.repository.AlertRepository;
@@ -39,10 +40,12 @@ class AlertEvaluationServiceTest {
 
     @BeforeEach
     void setUp() {
+        User owner = User.builder().username("test-owner").role("ROLE_USER").build();
         machine = Machine.builder()
                 .machineId("test-host")
                 .status(MachineStatus.ONLINE)
                 .lastSeen(Instant.now())
+                .owner(owner)
                 .build();
 
         highCpuMetric = SystemMetric.builder()
@@ -66,7 +69,7 @@ class AlertEvaluationServiceTest {
 
     @Test
     void evaluate_conditionMet_noOngoing_createsAlert() {
-        when(alertRuleRepository.findApplicableRules(machine)).thenReturn(List.of(cpuRule));
+        when(alertRuleRepository.findApplicableRules(eq(machine), any())).thenReturn(List.of(cpuRule));
         when(alertRepository.findByAlertRuleAndMachineAndStatus(cpuRule, machine, AlertStatus.ONGOING))
                 .thenReturn(Optional.empty());
         when(alertMapper.toDTO(any(Alert.class))).thenReturn(mock(AlertResponseDTO.class));
@@ -84,7 +87,7 @@ class AlertEvaluationServiceTest {
                 .alertRule(cpuRule).machine(machine)
                 .triggeredValue(90.0).status(AlertStatus.ONGOING).build();
 
-        when(alertRuleRepository.findApplicableRules(machine)).thenReturn(List.of(cpuRule));
+        when(alertRuleRepository.findApplicableRules(eq(machine), any())).thenReturn(List.of(cpuRule));
         when(alertRepository.findByAlertRuleAndMachineAndStatus(cpuRule, machine, AlertStatus.ONGOING))
                 .thenReturn(Optional.of(ongoing));
         when(alertMapper.toDTO(any(Alert.class))).thenReturn(mock(AlertResponseDTO.class));
@@ -103,7 +106,7 @@ class AlertEvaluationServiceTest {
                 .alertRule(cpuRule).machine(machine)
                 .triggeredValue(90.0).status(AlertStatus.ONGOING).build();
 
-        when(alertRuleRepository.findApplicableRules(machine)).thenReturn(List.of(cpuRule));
+        when(alertRuleRepository.findApplicableRules(eq(machine), any())).thenReturn(List.of(cpuRule));
         when(alertRepository.findByAlertRuleAndMachineAndStatus(cpuRule, machine, AlertStatus.ONGOING))
                 .thenReturn(Optional.of(ongoing));
 
@@ -115,7 +118,7 @@ class AlertEvaluationServiceTest {
 
     @Test
     void evaluate_conditionNotMet_noOngoing_noAction() {
-        when(alertRuleRepository.findApplicableRules(machine)).thenReturn(List.of(cpuRule));
+        when(alertRuleRepository.findApplicableRules(eq(machine), any())).thenReturn(List.of(cpuRule));
         when(alertRepository.findByAlertRuleAndMachineAndStatus(cpuRule, machine, AlertStatus.ONGOING))
                 .thenReturn(Optional.empty());
 
@@ -127,7 +130,7 @@ class AlertEvaluationServiceTest {
 
     @Test
     void evaluate_noRules_doesNothing() {
-        when(alertRuleRepository.findApplicableRules(machine)).thenReturn(List.of());
+        when(alertRuleRepository.findApplicableRules(eq(machine), any())).thenReturn(List.of());
 
         service.evaluate(machine, highCpuMetric);
 
@@ -144,7 +147,7 @@ class AlertEvaluationServiceTest {
                 .enabled(true)
                 .build();
 
-        when(alertRuleRepository.findApplicableRules(machine)).thenReturn(List.of(ramRule));
+        when(alertRuleRepository.findApplicableRules(eq(machine), any())).thenReturn(List.of(ramRule));
         when(alertRepository.findByAlertRuleAndMachineAndStatus(ramRule, machine, AlertStatus.ONGOING))
                 .thenReturn(Optional.empty());
         when(alertMapper.toDTO(any(Alert.class))).thenReturn(mock(AlertResponseDTO.class));

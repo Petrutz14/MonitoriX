@@ -76,7 +76,7 @@ class AuthServiceTest {
         when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
         AuthResponseDTO result = service.registerAgent(
-                new AgentRegisterRequestDTO("agent-host", "agentpass1"), "test_secret");
+                new AgentRegisterRequestDTO("agent-host", "agentpass1", null), "test_secret");
 
         assertThat(result.token()).isEqualTo("mocked-token");
         verify(userRepository).save(argThat(u -> u.getRole().equals("ROLE_AGENT")));
@@ -86,7 +86,7 @@ class AuthServiceTest {
     void registerAgent_wrongSecret_throwsIllegalArgument() {
         assertThrows(IllegalArgumentException.class, () ->
                 service.registerAgent(
-                        new AgentRegisterRequestDTO("agent-host", "agentpass1"), "wrong_secret"));
+                        new AgentRegisterRequestDTO("agent-host", "agentpass1", null), "wrong_secret"));
 
         verify(userRepository, never()).save(any());
     }

@@ -21,3 +21,6 @@ OVERVIEW.md
 
 # InteliJ
 .idea
+
+# Encrypted secrets
+*.enc

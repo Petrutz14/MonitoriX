@@ -1,6 +1,24 @@
 <header class="topbar">
-  <span class="topbar-brand">MonitoriX</span>
-  <button class="logout-btn" (click)="logout()">Sign out</button>
+  <div class="topbar-left">
+    <span class="topbar-brand">MonitoriX</span>
+  </div>
+
+  <div class="topbar-right">
+    @if (!demoActive) {
+      <button class="demo-launch-btn" (click)="launchDemo()" title="Spawn a simulated machine to showcase the dashboard">
+        <span class="demo-btn-dot"></span>
+        Launch Demo
+      </button>
+    } @else {
+      <div class="demo-indicator">
+        <span class="demo-live-dot"></span>
+        <span class="demo-label">{{ demoMachineId }}</span>
+        <button class="demo-stop-btn" (click)="stopDemo()">Stop</button>
+      </div>
+    }
+    <div class="topbar-sep"></div>
+    <button class="logout-btn" (click)="logout()">Sign out</button>
+  </div>
 </header>
 
 <!-- ── Toast stack (fixed top-right) ── -->
@@ -50,8 +68,20 @@
     <span class="loading-text">Loading</span>
   </div>
 } @else if (machines.length === 0) {
-  <div class="empty-state">No machines registered.</div>
+  <div class="empty-state">
+    <div class="empty-icon">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="32" height="32">
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M7.788 2H16.212C17.03 2 17.706 2 18.256 2.046C18.827 2.093 19.352 2.195 19.844 2.45C20.574 2.83 21.17 3.426 21.55 4.156C21.805 4.648 21.907 5.173 21.954 5.744C22 6.294 22 6.969 22 7.788V11.212C22 12.03 22 12.706 21.954 13.256C21.907 13.827 21.805 14.352 21.55 14.844C21.17 15.574 20.574 16.17 19.844 16.55C19.352 16.805 18.827 16.907 18.256 16.954C17.706 17 17.03 17 16.212 17H13V19H17C17.552 19 18 19.448 18 20C18 20.552 17.552 21 17 21H7C6.448 21 6 20.552 6 20C6 19.448 6.448 19 7 19H11V17H7.788C6.969 17 6.294 17 5.744 16.954C5.173 16.907 4.648 16.805 4.156 16.55C3.426 16.17 2.83 15.574 2.45 14.844C2.195 14.352 2.093 13.827 2.046 13.256C2 12.706 2 12.03 2 11.212V7.788C2 6.969 2 6.294 2.046 5.744C2.093 5.173 2.195 4.648 2.45 4.156C2.83 3.426 3.426 2.83 4.156 2.45C4.648 2.195 5.173 2.093 5.744 2.046C6.294 2 6.969 2 7.788 2Z" fill="currentColor" opacity="0.3"/>
+      </svg>
+    </div>
+    <div class="empty-title">No machines connected</div>
+    <div class="empty-sub">Run the Python agent on a machine, or use <strong>Launch Demo</strong> to spawn a sample machine.</div>
+  </div>
 } @else {
+  <div class="section-header">
+    <span class="section-title">Machines</span>
+    <span class="section-count">{{ machines.length }}</span>
+  </div>
   <div class="machines-grid">
     @for (machine of machines; track machine.machineId) {
       @let m = getMetric(machine.machineId);
@@ -59,12 +89,18 @@
       <a class="machine-card"
          [class.card--stale]="isStale(machine.machineStatus)"
          [class.card--alert]="alertCount > 0"
+         [class.card--demo]="machine.machineId === demoMachineId"
          [routerLink]="['/machine', machine.machineId]">
 
         <!-- Card header -->
         <div class="card-header">
           <div class="card-header-left">
-            <span class="card-name">{{ machine.displayName || machine.machineId }}</span>
+            <div class="card-name-row">
+              <span class="card-name">{{ machine.displayName || machine.machineId }}</span>
+              @if (machine.machineId === demoMachineId) {
+                <span class="demo-tag">DEMO</span>
+              }
+            </div>
             <span class="card-id">{{ machine.machineId }}</span>
           </div>
           <div class="card-header-right">
