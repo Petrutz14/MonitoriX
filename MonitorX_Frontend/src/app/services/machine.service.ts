@@ -2,10 +2,11 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { MachineResponse } from '../models/machine-response.model';
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class MachineService {
-    private apiUrl = 'http://localhost:8080/api/machines';
+    private apiUrl = `${environment.apiUrl}/api/machines`;
 
     constructor(private http: HttpClient) {}
 

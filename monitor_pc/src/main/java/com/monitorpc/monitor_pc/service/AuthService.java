@@ -59,11 +59,17 @@ public class AuthService {
         if (userRepository.existsByUsername(request.username())) {
             throw new IllegalArgumentException("Username already taken");
         }
+        User linkedOwner = null;
+        if (request.humanUsername() != null && !request.humanUsername().isBlank()) {
+            linkedOwner = userRepository.findByUsername(request.humanUsername())
+                    .orElseThrow(() -> new ResourceNotFound("Human user not found: " + request.humanUsername()));
+        }
         User user = User.builder()
                 .username(request.username())
                 .email(request.username() + "@monitorix.internal")
                 .password(passwordEncoder.encode(request.password()))
                 .role("ROLE_AGENT")
+                .linkedOwner(linkedOwner)
                 .build();
         userRepository.save(user);
         return new AuthResponseDTO(issueToken(user.getUsername(), user.getRole()));

@@ -2,12 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { AuthResponse, LoginRequest, RegisterRequest } from '../models/auth.model';
+import { environment } from '../../environments/environment';
 
 const TOKEN_KEY = 'monitorix_token';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly baseUrl = 'http://localhost:8080/api/auth';
+  private readonly baseUrl = `${environment.apiUrl}/api/auth`;
   private tokenSubject = new BehaviorSubject<string | null>(sessionStorage.getItem(TOKEN_KEY));
 
   token$ = this.tokenSubject.asObservable();
