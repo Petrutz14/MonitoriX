@@ -10,7 +10,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 1.25rem 0;
-  border-bottom: 1px solid #21262d;
+  border-bottom: 1px solid var(--border, #2c3040);
   margin-bottom: 1.75rem;
 }
 
@@ -20,16 +20,12 @@
   gap: 0.5rem;
 }
 
-.brand-icon {
-  font-size: 1.3rem;
-  color: #58a6ff;
-}
-
 .brand-name {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #e6edf3;
-  letter-spacing: 0.04em;
+  font-family: var(--fh, 'Hanken Grotesk'), sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--green, #73bf69);
+  letter-spacing: -0.02em;
 }
 
 .brand-tag {
