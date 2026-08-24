@@ -16,7 +16,7 @@ import java.time.Instant;
 @Builder
 public class AlertRule {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "machine_id")
@@ -31,6 +31,7 @@ public class AlertRule {
     private AlertOperator alertOperator;
     @Enumerated(EnumType.STRING)
     private AlertSeverity alertSeverity;
+    @Column(nullable = false)
     private Integer threshold;
     private Boolean enabled;
     @Builder.Default

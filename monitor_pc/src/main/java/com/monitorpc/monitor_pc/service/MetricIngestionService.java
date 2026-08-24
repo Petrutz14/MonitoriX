@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 
 @Service
@@ -41,13 +42,15 @@ public class MetricIngestionService {
 
     @Transactional
     public void ingest(AgentPayloadDTO agentPayloadDTO, String ownerUsername) {
-        User owner = userRepository.findByUsername(ownerUsername)
+        User agentUser = userRepository.findByUsername(ownerUsername)
                 .orElseThrow(() -> new ResourceNotFound("User not found: " + ownerUsername));
+        User owner = agentUser.getLinkedOwner() != null ? agentUser.getLinkedOwner() : agentUser;
+        String effectiveOwnerUsername = owner.getUsername();
 
         Machine machine = machineRepository
                 .findByMachineId(agentPayloadDTO.getMachineId())
                 .map(existing -> {
-                    if (!existing.getOwner().getUsername().equals(ownerUsername)) {
+                    if (!existing.getOwner().getUsername().equals(effectiveOwnerUsername)) {
                         throw new ResourceNotFound("Machine not found");
                     }
                     return existing;
@@ -150,5 +153,25 @@ public class MetricIngestionService {
         if (minutes <= 360)  return 60;
         if (minutes <= 1440) return 300;
         return 3600;
+    }
+
+    @Transactional
+    public void simulateIngest(String machineId, String ownerUsername) {
+        Random rng = new Random();
+        AgentPayloadDTO dto = new AgentPayloadDTO();
+        dto.setMachineId(machineId);
+        dto.setDisplayName(machineId);
+        dto.setCpuPercent(10.0 + rng.nextDouble() * 85.0);
+        dto.setRamPercent(20.0 + rng.nextDouble() * 70.0);
+        dto.setDiskPercent(10.0 + rng.nextDouble() * 80.0);
+        dto.setRamUsedGb(2.0 + rng.nextDouble() * 14.0);
+        dto.setDiskFreeGb(10.0 + rng.nextDouble() * 200.0);
+        dto.setUptimeSeconds((long) (rng.nextDouble() * 86400 * 30));
+        dto.setOsName("Simulated OS");
+        dto.setIpAddress("127.0.0.1");
+        dto.setTotalRamGb(16.0);
+        dto.setTopProcesses(List.of());
+        dto.setDiskPartitions(List.of());
+        ingest(dto, ownerUsername);
     }
 }

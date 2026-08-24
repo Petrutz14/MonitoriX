@@ -4,12 +4,13 @@ import time
 import platform
 import socket
 
-BASE_URL = "http://localhost:8080"
+BASE_URL = "http://YOUR_SERVER_IP:8080"          # e.g. http://1.2.3.4:8080 or https://api.yourdomain.com
 API_URL = f"{BASE_URL}/api/metrics"
 AUTH_URL = f"{BASE_URL}/api/auth/login"
-AGENT_USERNAME = platform.node()
-AGENT_PASSWORD = "agent-secret-change-me"
-AGENT_REGISTRATION_SECRET = "demo_secret"
+AGENT_USERNAME = platform.node()                 # hostname used as the agent account username — must be unique per machine
+AGENT_PASSWORD = "CHANGE_ME"                     # password for this agent's account (min 8 chars)
+HUMAN_USERNAME = "CHANGE_ME"                     # your MonitoriX dashboard username — machines appear here
+AGENT_REGISTRATION_SECRET = "CHANGE_ME"          # must match agent.registration-secret in application.properties
 REGISTER_AGENT_URL = f"{BASE_URL}/api/auth/register-agent"
 
 MACHINE_ID = platform.node()
@@ -38,7 +39,7 @@ def ensure_authenticated():
     except requests.HTTPError:
         requests.post(
             REGISTER_AGENT_URL,
-            json={"username": AGENT_USERNAME, "password": AGENT_PASSWORD},
+            json={"username": AGENT_USERNAME, "password": AGENT_PASSWORD, "humanUsername": HUMAN_USERNAME},
             headers={"X-Agent-Secret": AGENT_REGISTRATION_SECRET},
             timeout=5
         ).raise_for_status()
@@ -140,8 +141,15 @@ while True:
         if r.status_code == 401:
             get_token()
             r = requests.post(API_URL, json=data, headers=auth_headers(), timeout=5)
-        print(f"Sent: CPU={data['cpuPercent']}% RAM={data['ramPercent']}% "
-              f"Disk={data['diskPercent']}% -> {r.status_code}")
+        if r.status_code == 404:
+            print(f"ERROR: Machine '{MACHINE_ID}' exists on the server but is owned by a different user. "
+                  f"Change AGENT_USERNAME or delete the machine from its current owner.")
+            break
+        if not r.ok:
+            print(f"Warning: unexpected response {r.status_code} — {r.text[:200]}")
+        else:
+            print(f"Sent: CPU={data['cpuPercent']}% RAM={data['ramPercent']}% "
+                  f"Disk={data['diskPercent']}% -> {r.status_code}")
     except Exception as e:
         print(f"Failed: {e}")
 

@@ -25,7 +25,7 @@ public class MachineHealthService {
     public void offlineChecker(){
         List<Machine> machines=machineRepository.findAll();
         log.info("Checking {} machines", machines.size());
-        Instant cutoff = Instant.now().minusSeconds(30);
+        Instant cutoff = Instant.now().minusSeconds(60);
         for(Machine machine : machines){
             if(machine.getLastSeen() != null && machine.getLastSeen().isBefore(cutoff) && machine.getStatus()!=MachineStatus.OFFLINE){
                 machine.setStatus(MachineStatus.OFFLINE);

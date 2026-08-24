@@ -41,4 +41,11 @@ public class MetricController {
             @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(metricIngestionService.getHistory(machineId, jwt.getSubject(), minutes));
     }
+
+    @PostMapping("/simulate/{machineId}")
+    public ResponseEntity<String> simulateMetric(@PathVariable String machineId,
+                                                 @AuthenticationPrincipal Jwt jwt) {
+        metricIngestionService.simulateIngest(machineId, jwt.getSubject());
+        return ResponseEntity.status(HttpStatus.CREATED).body("Simulated metric received");
+    }
 }

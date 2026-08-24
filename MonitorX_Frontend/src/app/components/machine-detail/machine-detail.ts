@@ -45,6 +45,9 @@ export class MachineDetail implements OnInit, OnDestroy {
   historyView: 'graph' | 'table' = 'graph';
   historyPage = 1;
 
+  simulating = false;
+  simulateError = '';
+
   private wsSub?: Subscription;
   private alertSub?: Subscription;
 
@@ -280,8 +283,21 @@ export class MachineDetail implements OnInit, OnDestroy {
     });
   }
 
+  simulate(): void {
+    this.simulating = true;
+    this.simulateError = '';
+    this.metricService.simulateMetric(this.machineId).subscribe({
+      next: () => { this.simulating = false; this.cdr.detectChanges(); },
+      error: () => {
+        this.simulateError = 'Simulation failed. Try again.';
+        this.simulating = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
   isStale(status: string): boolean {
-    return status === 'OFFLINE' || status === 'IDLE';
+    return status === 'OFFLINE';
   }
 
   getAlertClass(value: number): string {
