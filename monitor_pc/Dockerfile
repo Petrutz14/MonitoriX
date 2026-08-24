@@ -1,10 +1,10 @@
 FROM eclipse-temurin:25-jdk-noble AS build
 WORKDIR /app
-COPY .mvn/ .mvn/
-COPY mvnw pom.xml ./
+COPY monitor_pc/.mvn/ .mvn/
+COPY monitor_pc/mvnw monitor_pc/pom.xml ./
 RUN sed -i 's/\r$//' mvnw && chmod +x mvnw
 RUN ./mvnw dependency:go-offline -q
-COPY src/ ./src/
+COPY monitor_pc/src/ ./src/
 RUN ./mvnw clean package -DskipTests -q
 
 FROM eclipse-temurin:25-jre-noble
