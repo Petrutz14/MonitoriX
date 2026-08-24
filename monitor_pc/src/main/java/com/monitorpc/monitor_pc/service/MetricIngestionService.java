@@ -157,21 +157,44 @@ public class MetricIngestionService {
 
     @Transactional
     public void simulateIngest(String machineId, String ownerUsername) {
+        User user = userRepository.findByUsername(ownerUsername)
+                .orElseThrow(() -> new ResourceNotFound("User not found: " + ownerUsername));
+        User owner = user.getLinkedOwner() != null ? user.getLinkedOwner() : user;
+
         Random rng = new Random();
-        AgentPayloadDTO dto = new AgentPayloadDTO();
-        dto.setMachineId(machineId);
-        dto.setDisplayName(machineId);
-        dto.setCpuPercent(10.0 + rng.nextDouble() * 85.0);
-        dto.setRamPercent(20.0 + rng.nextDouble() * 70.0);
-        dto.setDiskPercent(10.0 + rng.nextDouble() * 80.0);
-        dto.setRamUsedGb(2.0 + rng.nextDouble() * 14.0);
-        dto.setDiskFreeGb(10.0 + rng.nextDouble() * 200.0);
-        dto.setUptimeSeconds((long) (rng.nextDouble() * 86400 * 30));
-        dto.setOsName("Simulated OS");
-        dto.setIpAddress("127.0.0.1");
-        dto.setTotalRamGb(16.0);
-        dto.setTopProcesses(List.of());
-        dto.setDiskPartitions(List.of());
-        ingest(dto, ownerUsername);
+
+        Machine machine = machineRepository.findByMachineIdAndOwnerUsername(machineId, owner.getUsername())
+                .orElseGet(() -> machineRepository.save(Machine.builder()
+                        .machineId(machineId)
+                        .displayName("Demo Machine")
+                        .status(MachineStatus.ONLINE)
+                        .lastSeen(Instant.now())
+                        .osName("Simulated OS")
+                        .ipAddress("127.0.0.1")
+                        .totalRamGb(16.0)
+                        .owner(owner)
+                        .build()));
+
+        machine.setStatus(MachineStatus.ONLINE);
+        machine.setLastSeen(Instant.now());
+
+        SystemMetric systemMetric = SystemMetric.builder()
+                .machine(machine)
+                .cpuPercent(10.0 + rng.nextDouble() * 85.0)
+                .ramPercent(20.0 + rng.nextDouble() * 70.0)
+                .diskPercent(10.0 + rng.nextDouble() * 80.0)
+                .ramUsedGb(2.0 + rng.nextDouble() * 14.0)
+                .diskFreeGb(10.0 + rng.nextDouble() * 200.0)
+                .uptimeSeconds((long) (rng.nextDouble() * 86400 * 30))
+                .recordedAt(Instant.now())
+                .build();
+
+        machineRepository.save(machine);
+        systemMetricRepository.save(systemMetric);
+
+        alertEvaluationService.evaluate(machine, systemMetric);
+
+        simpMessagingTemplate.convertAndSend("/topic/metrics",
+                metricMapper.toDTO(systemMetric, machine, List.of(), List.of()));
     }
 }
