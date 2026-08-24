@@ -27,4 +27,8 @@ public class User {
 
     @Column(nullable = false)
     private String role;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "linked_owner_id")
+    private User linkedOwner;
 }
