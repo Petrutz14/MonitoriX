@@ -10,6 +10,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.springframework.test.context.ActiveProfiles;
@@ -31,11 +32,9 @@ class MetricIngestionIT {
     @ServiceConnection
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16");
 
-    @Autowired
-    MockMvcTester mvc;
-
-    @Autowired
-    MachineRepository machineRepository;
+    @Autowired MockMvcTester mvc;
+    @Autowired MachineRepository machineRepository;
+    @Autowired JdbcTemplate jdbc;
 
     private static final String AGENT_USERNAME = "it-agent";
     private static final String AGENT_SECRET   = "demo_secret";
@@ -43,7 +42,12 @@ class MetricIngestionIT {
 
     @AfterEach
     void cleanup() {
-        machineRepository.findByMachineId(MACHINE_ID).ifPresent(machineRepository::delete);
+        // Delete in FK order: leaves before roots
+        jdbc.update("DELETE FROM top_process WHERE system_metric_id IN (SELECT id FROM system_metric WHERE machine_id IN (SELECT id FROM machine WHERE machine_id = ?))", MACHINE_ID);
+        jdbc.update("DELETE FROM disk_partition WHERE system_metric_id IN (SELECT id FROM system_metric WHERE machine_id IN (SELECT id FROM machine WHERE machine_id = ?))", MACHINE_ID);
+        jdbc.update("DELETE FROM system_metric WHERE machine_id IN (SELECT id FROM machine WHERE machine_id = ?)", MACHINE_ID);
+        jdbc.update("DELETE FROM machine WHERE machine_id = ?", MACHINE_ID);
+        jdbc.update("DELETE FROM users WHERE username = ?", AGENT_USERNAME);
     }
 
     @Test
