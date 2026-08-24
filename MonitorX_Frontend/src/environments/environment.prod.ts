@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: '__BACKEND_URL__',
-  wsUrl: '__WS_URL__',
+  apiUrl: 'https://monitorix-production.up.railway.app',
+  wsUrl: 'wss://monitorix-production.up.railway.app/ws',
 };
