@@ -1,0 +1,5 @@
+{
+  "buildCommand": "sed -i 's|__BACKEND_URL__|'\"$BACKEND_URL\"'|g' src/environments/environment.prod.ts && sed -i 's|__WS_URL__|'\"$WS_URL\"'|g' src/environments/environment.prod.ts && npm run build -- --configuration=production",
+  "outputDirectory": "dist/MonitorX_Frontend/browser",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
