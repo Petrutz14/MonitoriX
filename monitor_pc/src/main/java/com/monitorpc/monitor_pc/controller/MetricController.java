@@ -16,7 +16,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/metrics")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:4200")
 public class MetricController {
     private final MetricIngestionService metricIngestionService;
 
