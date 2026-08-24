@@ -43,8 +43,8 @@ class MetricIngestionIT {
     @AfterEach
     void cleanup() {
         // Delete in FK order: leaves before roots
-        jdbc.update("DELETE FROM top_process WHERE system_metric_id IN (SELECT id FROM system_metric WHERE machine_id IN (SELECT id FROM machine WHERE machine_id = ?))", MACHINE_ID);
-        jdbc.update("DELETE FROM disk_partition WHERE system_metric_id IN (SELECT id FROM system_metric WHERE machine_id IN (SELECT id FROM machine WHERE machine_id = ?))", MACHINE_ID);
+        jdbc.update("DELETE FROM top_process WHERE metric_id IN (SELECT id FROM system_metric WHERE machine_id IN (SELECT id FROM machine WHERE machine_id = ?))", MACHINE_ID);
+        jdbc.update("DELETE FROM disk_partition WHERE metric_id IN (SELECT id FROM system_metric WHERE machine_id IN (SELECT id FROM machine WHERE machine_id = ?))", MACHINE_ID);
         jdbc.update("DELETE FROM system_metric WHERE machine_id IN (SELECT id FROM machine WHERE machine_id = ?)", MACHINE_ID);
         jdbc.update("DELETE FROM machine WHERE machine_id = ?", MACHINE_ID);
         jdbc.update("DELETE FROM users WHERE username = ?", AGENT_USERNAME);
