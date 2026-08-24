@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# MonitoriX — PC Monitoring Dashboard
+# Project by Craciunoiu Petru

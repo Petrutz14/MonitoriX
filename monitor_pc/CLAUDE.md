@@ -66,7 +66,10 @@ src/main/java/com/monitorpc/monitor_pc/
 - Condition NOT met + ONGOING alert → set RESOLVED, broadcast.
 
 **Machine health check** (`MachineHealthService.offlineChecker()`):
-- `@Scheduled(fixedRate=30000)` — marks machines OFFLINE if `lastSeen < now − 30s`.
+- `@Scheduled(fixedRate=30000)` — marks machines OFFLINE if `lastSeen < now − 60s` (cutoff is 60 seconds, not 30).
+
+**Simulate endpoint** (`POST /api/metrics/simulate/{machineId}`):
+- Requires `ROLE_USER` (not ROLE_AGENT). Generates random metric values and calls `ingest()` internally. Used for testing without a real agent.
 
 ### REST API
 
@@ -92,6 +95,10 @@ JWT-based, stateless. RSA keys in `src/main/resources/certs/`. Token issued on l
 - Header: `X-Agent-Secret: <value>` must match `agent.registration-secret` in `application.properties` (dev value: `demo_secret`).
 - `MonitorX_Metrics.py` constant: `AGENT_REGISTRATION_SECRET = "demo_secret"` — keep in sync with `application.properties`.
 - Registered agents get `ROLE_AGENT`; only that role may `POST /api/metrics`.
+- **AGENT_USERNAME must not equal the human username** — `platform.node()` returns the hostname, which may match the human's username. Use `platform.node() + "-agent"` to avoid 400 "Username already taken" on register-agent.
+- Optional `humanUsername` field links agent to a human user (`linked_owner_id` FK on `users` table). During ingestion, the effective owner is `agent.linkedOwner ?? agent` — machines appear on the human's dashboard.
+
+**Known gap:** `AuthenticationException` (wrong credentials) falls to the catch-all 500 handler instead of 401, because `GlobalExceptionHandler` does not handle it explicitly. The Python agent handles this by treating any `HTTPError` as a signal to attempt self-registration.
 
 **Public endpoints:** `/api/auth/**`, `/ws/**`, `OPTIONS /**`.
 **All others** require a valid JWT.
@@ -112,20 +119,35 @@ JWT-based, stateless. RSA keys in `src/main/resources/certs/`. Token issued on l
 src/app/
 ├── components/
 │   ├── dashboard/         dashboard.ts/.html/.css — all-machines overview + alert toasts
-│   └── machine-detail/    machine-detail.ts/.html/.css — per-machine drilldown + rule CRUD
+│   ├── machine-detail/    machine-detail.ts/.html/.css — per-machine drilldown + rule CRUD
+│   └── login/             login.ts/.html/.css — login + register form (mode toggle)
 ├── services/
+│   ├── auth.service.ts        POST /api/auth/login|register; JWT in sessionStorage + BehaviorSubject
 │   ├── machine.service.ts     GET /api/machines, PATCH displayName
-│   ├── metric.service.ts      GET /api/metrics/{id}, /history
+│   ├── metric.service.ts      GET /api/metrics/{id}, /history, POST /simulate/{id}
 │   ├── alert.service.ts       GET/POST/PATCH/DELETE alert-rules, GET alerts
-│   └── websocket.service.ts   STOMP client; exposes metric$ and alert$ Observables
+│   └── websocket.service.ts   STOMP client; ref-counted connect/disconnect; metric$ + alert$ Observables
+├── guards/
+│   ├── auth.guard.ts          CanActivateFn — redirects unauthenticated → /login
+│   └── login.guard.ts         CanActivateFn — redirects authenticated → /dashboard
+├── interceptors/
+│   └── auth.interceptor.ts    HttpInterceptorFn — adds Bearer token; on 401 → logout + /login
 ├── models/
 │   ├── machine-response.model.ts
 │   ├── metric-response.model.ts
+│   ├── metric-bucket-response.model.ts  (MetricBucketResponse — history endpoint shape)
 │   ├── alert.model.ts          (AlertResponse, AlertRuleResponse, AlertRuleRequest)
+│   ├── auth.model.ts           (LoginRequest, RegisterRequest, AuthResponse)
 │   └── machine-status.type.ts
-├── app.routes.ts    /  → Dashboard,  /machine/:machineId → MachineDetail
-└── app.config.ts
+├── app.routes.ts    /login, /dashboard (authGuard), /machine/:machineId (authGuard), / → /dashboard
+└── app.config.ts    provideRouter + provideHttpClient(withInterceptors([authInterceptor]))
 ```
+
+**JWT storage:** `sessionStorage` key `monitorix_token` — cleared on tab close. **Not** localStorage (session scoped).
+
+**WebSocket auth:** STOMP `connectHeaders` include `Authorization: Bearer <token>`. `/ws` endpoint is public at HTTP level; JWT checked at application level if needed.
+
+**Ref-counted WS:** `WebSocketService.connect()` increments counter; `disconnect()` decrements. STOMP activates when count reaches 1, deactivates when it reaches 0. Both Dashboard and MachineDetail call connect/disconnect in `ngOnInit`/`ngOnDestroy`.
 
 ---
 

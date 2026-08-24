@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -7,40 +7,41 @@
 }
 
 :root {
-  /* Surfaces — incremental luminosity steps */
-  --bg:      #131313;
-  --s0:      #0e0e0e;
-  --s1:      #1c1b1b;
-  --s2:      #201f1f;
-  --s3:      #2a2a2a;
+  /* Surfaces — Grafana blue-dark tones */
+  --bg:      #111217;
+  --s0:      #0b0c0f;
+  --s1:      #181b1f;
+  --s2:      #1f2229;
+  --s3:      #252b36;
   /* Borders */
-  --border:  #262626;
-  --border2: #404040;
-  --outline: #86948a;
-  --outvar:  #3c4a42;
-  /* Primary — Phosphor Green */
-  --green:    #4edea3;
-  --green-a:  #10b981;
-  --green-hv: rgba(16,185,129,.5);
-  --green-on: #003824;
-  --green-bg: rgba(78,222,163,.07);
-  /* Secondary — Amber */
-  --amber:    #ffb95f;
-  --amber-a:  #ee9800;
-  --amber-bg: rgba(255,185,95,.07);
-  /* Tertiary — System Blue */
-  --blue:     #adc6ff;
-  --blue-bg:  rgba(173,198,255,.07);
+  --border:  #2c3040;
+  --border2: #3d4461;
+  --outline: #6e7282;
+  --outvar:  #3d4461;
+  /* Primary — Phosphor Green (brand, interactive) */
+  --green:    #73bf69;
+  --green-a:  #37872d;
+  --green-hv: rgba(115,191,105,.4);
+  --green-on: #0e2b0a;
+  --green-bg: rgba(115,191,105,.07);
+  /* Warning — Amber */
+  --amber:    #ff9830;
+  --amber-a:  #e07b00;
+  --amber-bg: rgba(255,152,48,.08);
   /* Error */
-  --red:      #ffb4ab;
-  --red-fill: #c0392b;
-  --red-bg:   rgba(255,180,171,.07);
-  --red-brd:  rgba(147,0,10,.7);
+  --red:      #f2495c;
+  --red-fill: #c4162a;
+  --red-bg:   rgba(242,73,92,.08);
+  --red-brd:  rgba(196,22,42,.5);
+  /* Info / medium severity */
+  --blue:     #5794f2;
+  --blue-bg:  rgba(87,148,242,.08);
   /* Text */
-  --text:   #e5e2e1;
-  --text-v: #bbcabf;
+  --text:   #d8d9da;
+  --text-v: #9fa7b3;
   /* Fonts */
-  --fh: 'Hanken Grotesk', system-ui, sans-serif;
+  --fh: 'Hanken Grotesk', 'Inter', system-ui, sans-serif;
+  --fi: 'Inter', system-ui, sans-serif;
   --fm: 'JetBrains Mono', 'Courier New', monospace;
 }
 

@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  backend:
+    name: Backend — Test & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run tests (unit + integration via Testcontainers)
+        run: cd monitor_pc && ./mvnw test -B
+        env:
+          SPRING_PROFILES_ACTIVE: test
+
+      - name: Build jar
+        run: cd monitor_pc && ./mvnw package -DskipTests -B
+
+  frontend:
+    name: Frontend — Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: MonitorX_Frontend/package-lock.json
+
+      - name: Install dependencies
+        run: cd MonitorX_Frontend && npm ci
+
+      - name: Build
+        run: cd MonitorX_Frontend && npx ng build --configuration production
+
+      - name: Test
+        run: cd MonitorX_Frontend && npm test
