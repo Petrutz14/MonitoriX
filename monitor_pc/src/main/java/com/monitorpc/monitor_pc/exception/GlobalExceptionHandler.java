@@ -1,6 +1,7 @@
 package com.monitorpc.monitor_pc.exception;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -45,6 +46,11 @@ public class GlobalExceptionHandler {
                 "error", "Validation Failed",
                 "fields", fields
         ));
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Map<String, Object>> handleAuthentication(AuthenticationException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body(HttpStatus.UNAUTHORIZED, "Invalid username or password"));
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

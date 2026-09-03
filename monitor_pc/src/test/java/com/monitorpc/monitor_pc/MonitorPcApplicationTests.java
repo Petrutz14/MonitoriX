@@ -4,6 +4,6 @@ import org.junit.platform.suite.api.SelectPackages;
 import org.junit.platform.suite.api.Suite;
 
 @Suite
-@SelectPackages("com.monitorpc.monitor_pc.service")
+@SelectPackages("com.monitorpc.monitor_pc")
 class MonitorPcApplicationTests {
 }
