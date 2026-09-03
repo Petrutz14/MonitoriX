@@ -34,9 +34,11 @@ export class LoginComponent {
     obs.subscribe({
       next: () => { this.router.navigate(['/dashboard']); },
       error: err => {
-        if (err.status === 401) this.error = 'Invalid username or password';
-        else if (err.status === 400) this.error = err.error ?? 'Invalid input';
-        else this.error = 'Something went wrong, try again';
+        if (err.status === 401) this.error = 'Invalid username or password.';
+        else if (err.status === 429) this.error = 'Too many requests. Try again later.';
+        else if (err.status === 409) this.error = 'Username already taken.';
+        else if (err.status === 400) this.error = err.error?.message || 'Please check your input.';
+        else this.error = 'Something went wrong. Try again later.';
         this.loading = false;
         this.cdr.detectChanges();
       }
